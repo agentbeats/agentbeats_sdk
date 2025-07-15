@@ -7,8 +7,10 @@ from .agentbeats.utils.agents import (
     check_agent_health, ping_agents
 )
 from .agentbeats.utils.environment import (
-    setup_docker_environment, cleanup_docker_environment, check_container_health,
-    execute_ssh_command, create_ssh_session, SSHSession, setup_game_arena, teardown_game_arena
+    setup_docker_environment, cleanup_docker_environment, check_container_health
+)
+from .agentbeats.utils.ssh import (
+    test_ssh_connection, create_ssh_connect_tool, create_ssh_command_tool
 )
 
 _TOOL_REGISTRY = [] # global register for tools
