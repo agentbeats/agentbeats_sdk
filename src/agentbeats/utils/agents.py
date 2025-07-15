@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Common utility functions for AgentBeats scenarios.
+Agent communication utilities for AgentBeats scenarios.
 """
 
 import httpx
@@ -112,3 +112,37 @@ async def check_agent_health(target_url: str) -> bool:
             return response.status_code == 200
     except Exception:
         return False
+
+
+async def ping_agents(agent_urls: List[str]) -> Dict[str, bool]:
+    """
+    Check health of multiple agents concurrently.
+    
+    Args:
+        agent_urls: List of agent URLs to check
+        
+    Returns:
+        Dictionary mapping agent URLs to their health status
+    """
+    async def ping_single_agent(url: str) -> tuple[str, bool]:
+        is_healthy = await check_agent_health(url)
+        return url, is_healthy
+    
+    # Create tasks for all agents
+    tasks = [ping_single_agent(url) for url in agent_urls]
+    
+    # Execute all tasks concurrently
+    results = await asyncio.gather(*tasks, return_exceptions=True)
+    
+    # Process results
+    health_dict = {}
+    for i, result in enumerate(results):
+        url = agent_urls[i]
+        if isinstance(result, Exception):
+            health_dict[url] = False
+        elif isinstance(result, tuple) and len(result) == 2:
+            health_dict[url] = result[1]  # result is (url, health_status) tuple
+        else:
+            health_dict[url] = False
+    
+    return health_dict 
