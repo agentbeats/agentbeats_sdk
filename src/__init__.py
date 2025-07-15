@@ -2,6 +2,7 @@
 
 from .agentbeats.agent_executor import *
 from .agentbeats.agent_launcher import *
+from .agentbeats.utils import send_message_to_agent, send_message_to_agents, create_a2a_client, check_agent_health
 
 _TOOL_REGISTRY = [] # global register for tools
 
