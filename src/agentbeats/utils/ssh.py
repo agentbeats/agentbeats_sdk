@@ -3,21 +3,18 @@
 SSH utilities for AgentBeats scenarios.
 """
 
+import paramiko
 from typing import Dict, Any
-from .logging import auto_log
+from .logging import log_battle_event, CURRENT_BATTLE_ID, CURRENT_AGENT_NAME, CURRENT_BACKEND_URL, _log_via_mcp_or_direct, log_error
 
 
-@auto_log(action_name="SSH Command Execution")
 def _execute_ssh_command_helper(ssh_client, command: str) -> str:
     """
     Helper function to execute SSH command and format output.
     """
-    from .logging import log_battle_event, CURRENT_BATTLE_ID, CURRENT_AGENT_NAME, CURRENT_BACKEND_URL
-    
     try:
         # Log the command being executed
         if CURRENT_BATTLE_ID:
-            from .logging import _log_via_mcp_or_direct
             _log_via_mcp_or_direct(
                 message=f"Executing SSH command: {command}",
                 detail={"command": command}
@@ -35,7 +32,6 @@ def _execute_ssh_command_helper(ssh_client, command: str) -> str:
         
         # Log the results
         if CURRENT_BATTLE_ID:
-            from .logging import _log_via_mcp_or_direct
             _log_via_mcp_or_direct(
                 message=f"SSH command completed with exit status {exit_status}",
                 detail={
@@ -64,7 +60,6 @@ def _execute_ssh_command_helper(ssh_client, command: str) -> str:
     except Exception as e:
         # Log the error
         if CURRENT_BATTLE_ID:
-            from .logging import _log_via_mcp_or_direct
             _log_via_mcp_or_direct(
                 message=f"SSH command execution failed: {str(e)}",
                 detail={"error": str(e), "error_type": "error"}
@@ -85,8 +80,6 @@ def create_ssh_connect_tool(agent_instance: Any, default_host: str = "localhost"
         This establishes a connection to the remote system where you can execute commands.
         """
         try:
-            import paramiko
-            
             # Create SSH client
             agent_instance.ssh_client = paramiko.SSHClient()
             agent_instance.ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -136,16 +129,12 @@ def create_ssh_command_tool(agent_instance: Any) -> Any:
 
 
 
-@auto_log(action_name="SSH Connection Test")
 async def test_ssh_connection(host: str, credentials: Dict[str, str]) -> bool:
     """
     Test if SSH connection can be established.
     """
-    from .logging import log_battle_event, CURRENT_BATTLE_ID, CURRENT_AGENT_NAME, CURRENT_BACKEND_URL
     
     try:
-        import paramiko
-        
         # Log connection attempt
         if CURRENT_BATTLE_ID:
             log_battle_event(
@@ -199,7 +188,6 @@ async def test_ssh_connection(host: str, credentials: Dict[str, str]) -> bool:
     except Exception as e:
         # Log connection failure
         if CURRENT_BATTLE_ID:
-            from .logging import log_error
             log_error(
                 battle_id=CURRENT_BATTLE_ID,
                 error_message=f"SSH connection failed to {host}: {str(e)}",

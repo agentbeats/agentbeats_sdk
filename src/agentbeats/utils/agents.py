@@ -17,10 +17,7 @@ from a2a.types import (
     TaskArtifactUpdateEvent,
     TaskStatusUpdateEvent,
 )
-from .logging import auto_log
-
-
-@auto_log(action_name="A2A Client Creation")
+from .logging import log_battle_event, CURRENT_BATTLE_ID, CURRENT_AGENT_NAME, CURRENT_BACKEND_URL
 async def create_a2a_client(target_url: str) -> A2AClient:
     """
     Create an A2A client for communicating with an agent at *target_url*.
@@ -36,13 +33,11 @@ async def create_a2a_client(target_url: str) -> A2AClient:
     return A2AClient(httpx_client=httpx_client, agent_card=card)
 
 
-@auto_log(action_name="Agent Message Send")
 async def send_message_to_agent(target_url: str, message: str) -> str:
     """
     Forward *message* to another A2A agent at *target_url* and stream back
     the plain-text response.
     """
-    from .logging import log_battle_event, CURRENT_BATTLE_ID, CURRENT_AGENT_NAME, CURRENT_BACKEND_URL
     
     # Log the message being sent
     if CURRENT_BATTLE_ID:
@@ -105,13 +100,11 @@ async def send_message_to_agent(target_url: str, message: str) -> str:
     return response
 
 
-@auto_log(action_name="Multi-Agent Message Send")
 async def send_message_to_agents(target_urls: List[str], message: str) -> Dict[str, str]:
     """
     Forward *message* to multiple A2A agents at *target_urls* concurrently and stream back
     the plain-text responses.
     """
-    from .logging import log_battle_event, CURRENT_BATTLE_ID, CURRENT_AGENT_NAME, CURRENT_BACKEND_URL
     
     # Log the broadcast message
     if CURRENT_BATTLE_ID:
@@ -175,7 +168,6 @@ async def send_message_to_agents(target_urls: List[str], message: str) -> Dict[s
     return response_dict
 
 
-@auto_log(action_name="Agent Health Check")
 async def check_agent_health(target_url: str) -> bool:
     """
     Check if an agent is healthy and responding.
@@ -188,7 +180,6 @@ async def check_agent_health(target_url: str) -> bool:
         return False
 
 
-@auto_log(action_name="Multi-Agent Health Check")
 async def ping_agents(agent_urls: List[str]) -> Dict[str, bool]:
     """
     Check health of multiple agents concurrently.

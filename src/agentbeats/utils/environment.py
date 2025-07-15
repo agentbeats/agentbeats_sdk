@@ -5,16 +5,10 @@ Environment and infrastructure utilities for AgentBeats scenarios.
 
 import subprocess
 import asyncio
-import json
-import time
 from typing import Dict, List, Optional, Any
 from pathlib import Path
 
-import agentbeats as ab
-from .logging import auto_log
-
-
-@auto_log(action_name="Docker Environment Setup")
+from .logging import log_battle_event, CURRENT_BATTLE_ID, CURRENT_AGENT_NAME, CURRENT_BACKEND_URL, log_error
 async def setup_docker_environment(config: Dict[str, Any]) -> bool:
     """
     Set up a Docker environment for a scenario.
@@ -25,7 +19,6 @@ async def setup_docker_environment(config: Dict[str, Any]) -> bool:
     Returns:
         True if successful, False otherwise
     """
-    from .logging import log_battle_event, CURRENT_BATTLE_ID, CURRENT_AGENT_NAME, CURRENT_BACKEND_URL
     
     try:
         docker_dir = config.get("docker_dir", "docker")
@@ -50,7 +43,6 @@ async def setup_docker_environment(config: Dict[str, Any]) -> bool:
         if not docker_path.exists():
             error_msg = f"Docker directory not found: {docker_dir}"
             if CURRENT_BATTLE_ID:
-                from .logging import log_error
                 log_error(
                     battle_id=CURRENT_BATTLE_ID,
                     error_message=error_msg,
@@ -126,7 +118,6 @@ async def setup_docker_environment(config: Dict[str, Any]) -> bool:
         else:
             error_msg = f"Failed to start Docker environment: {result.stderr}"
             if CURRENT_BATTLE_ID:
-                from .logging import log_error
                 log_error(
                     battle_id=CURRENT_BATTLE_ID,
                     error_message=error_msg,
@@ -140,7 +131,6 @@ async def setup_docker_environment(config: Dict[str, Any]) -> bool:
     except Exception as e:
         error_msg = f"Error setting up Docker environment: {str(e)}"
         if CURRENT_BATTLE_ID:
-            from .logging import log_error
             log_error(
                 battle_id=CURRENT_BATTLE_ID,
                 error_message=error_msg,
@@ -152,7 +142,6 @@ async def setup_docker_environment(config: Dict[str, Any]) -> bool:
         return False
 
 
-@auto_log(action_name="Docker Environment Cleanup")
 async def cleanup_docker_environment(env_id: str) -> bool:
     """
     Clean up a Docker environment.
@@ -183,7 +172,6 @@ async def cleanup_docker_environment(env_id: str) -> bool:
         return False
 
 
-@auto_log(action_name="Container Health Check")
 async def check_container_health(container_name: str) -> bool:
     """
     Check if a Docker container is healthy and running.

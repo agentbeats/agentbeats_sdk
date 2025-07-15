@@ -24,4 +24,12 @@ __all__ = [
     "test_ssh_connection",
     "create_ssh_connect_tool",
     "create_ssh_command_tool",
+    
+    # Logging utilities
+    "set_battle_context",
+    "log_battle_event",
+    "log_battle_result", 
+    "log_error",
+    "log_agent_action",
+    "log_monitoring_check",
 ] 
