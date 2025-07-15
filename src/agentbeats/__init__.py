@@ -1,15 +1,15 @@
 # -*- coding: utf-8 -*-
 
-from .agentbeats.agent_executor import *
-from .agentbeats.agent_launcher import *
-from .agentbeats.utils.agents import (
+from .agent_executor import *
+from .agent_launcher import *
+from .utils.agents import (
     create_a2a_client, send_message_to_agent, send_message_to_agents,
     check_agent_health, ping_agents
 )
-from .agentbeats.utils.environment import (
+from .utils.environment import (
     setup_docker_environment, cleanup_docker_environment, check_container_health
 )
-from .agentbeats.utils.ssh import (
+from .utils.ssh import (
     test_ssh_connection, create_ssh_connect_tool, create_ssh_command_tool
 )
 

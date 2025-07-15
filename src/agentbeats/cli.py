@@ -7,7 +7,7 @@ import importlib.util
 
 from .agent_executor import *
 from .agent_launcher import *
-from . import get_registered_tools
+from . import get_registered_tools, tool
 
 def _import_tool_file(path: str | pathlib.Path):
     """import a Python file as a module, triggering @agentbeats.tool() decorators."""
