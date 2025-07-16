@@ -5,7 +5,6 @@ SSH utilities for AgentBeats scenarios.
 
 import paramiko
 from typing import Dict, Any
-from .logging import log_battle_event, CURRENT_BATTLE_ID, CURRENT_AGENT_NAME, CURRENT_BACKEND_URL, _log_via_mcp_or_direct, log_error
 
 
 def _execute_ssh_command_helper(ssh_client, command: str) -> str:
@@ -13,13 +12,6 @@ def _execute_ssh_command_helper(ssh_client, command: str) -> str:
     Helper function to execute SSH command and format output.
     """
     try:
-        # Log the command being executed
-        if CURRENT_BATTLE_ID:
-            _log_via_mcp_or_direct(
-                message=f"Executing SSH command: {command}",
-                detail={"command": command}
-            )
-        
         # Execute command
         stdin, stdout, stderr = ssh_client.exec_command(command)
         
@@ -29,20 +21,6 @@ def _execute_ssh_command_helper(ssh_client, command: str) -> str:
         
         # Wait for command to complete
         exit_status = stdout.channel.recv_exit_status()
-        
-        # Log the results
-        if CURRENT_BATTLE_ID:
-            _log_via_mcp_or_direct(
-                message=f"SSH command completed with exit status {exit_status}",
-                detail={
-                    "command": command,
-                    "exit_status": exit_status,
-                    "output_length": len(output),
-                    "error_length": len(error),
-                    "output_preview": output[:200] + "..." if len(output) > 200 else output,
-                    "error_preview": error[:200] + "..." if len(error) > 200 else error
-                }
-            )
         
         result = f"Command: {command}\nExit Status: {exit_status}\n"
         
@@ -58,12 +36,6 @@ def _execute_ssh_command_helper(ssh_client, command: str) -> str:
             return f"⚠️ {result}"
             
     except Exception as e:
-        # Log the error
-        if CURRENT_BATTLE_ID:
-            _log_via_mcp_or_direct(
-                message=f"SSH command execution failed: {str(e)}",
-                detail={"error": str(e), "error_type": "error"}
-            )
         return f"SSH Command Error: {str(e)}"
 
 
@@ -135,21 +107,6 @@ async def test_ssh_connection(host: str, credentials: Dict[str, str]) -> bool:
     """
     
     try:
-        # Log connection attempt
-        if CURRENT_BATTLE_ID:
-            log_battle_event(
-                battle_id=CURRENT_BATTLE_ID,
-                message=f"Attempting SSH connection to {host}:{credentials.get('port', 22)}",
-                reported_by=CURRENT_AGENT_NAME or "system",
-                detail={
-                    "host": host,
-                    "port": credentials.get("port", 22),
-                    "username": credentials.get("username", "root"),
-                    "timeout": 10
-                },
-                backend_url=CURRENT_BACKEND_URL
-            )
-        
         # Create SSH client
         ssh_client = paramiko.SSHClient()
         ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -167,32 +124,9 @@ async def test_ssh_connection(host: str, credentials: Dict[str, str]) -> bool:
             timeout=10
         )
         
-        # Log successful connection
-        if CURRENT_BATTLE_ID:
-            log_battle_event(
-                battle_id=CURRENT_BATTLE_ID,
-                message=f"SSH connection successful to {host}:{port}",
-                reported_by=CURRENT_AGENT_NAME or "system",
-                detail={
-                    "host": host,
-                    "port": port,
-                    "username": credentials.get("username", "root")
-                },
-                backend_url=CURRENT_BACKEND_URL
-            )
-        
         # Close connection
         ssh_client.close()
         return True
         
     except Exception as e:
-        # Log connection failure
-        if CURRENT_BATTLE_ID:
-            log_error(
-                battle_id=CURRENT_BATTLE_ID,
-                error_message=f"SSH connection failed to {host}: {str(e)}",
-                error_type="error",
-                reported_by=CURRENT_AGENT_NAME or "system",
-                backend_url=CURRENT_BACKEND_URL
-            )
         return False 

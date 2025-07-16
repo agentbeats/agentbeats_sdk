@@ -35,6 +35,29 @@ def set_battle_context(battle_id: str, agent_name: str = "system", backend_url: 
         CURRENT_BACKEND_URL = backend_url
     if mcp_tools:
         CURRENT_MCP_TOOLS = mcp_tools
+        print(f"🔧 Set up battle context with {len(mcp_tools)} MCP tools for {agent_name}")
+    else:
+        print(f"🔧 Set up battle context without MCP tools for {agent_name}")
+
+
+def auto_setup_mcp_logging(battle_id: str, agent_name: str = "system", backend_url: Optional[str] = None):
+    """Automatically set up battle context and try to detect MCP tools from environment."""
+    global CURRENT_MCP_TOOLS
+    
+    # Try to detect MCP tools from environment variables or other sources
+    mcp_tools = None
+    
+    # Check if we're running in an agent context with MCP servers
+    # This is a simplified approach - in a real implementation, you'd need to
+    # access the agent's MCP server context
+    try:
+        # For now, we'll set up basic context and let the agent pass MCP tools manually
+        set_battle_context(battle_id, agent_name, backend_url, mcp_tools)
+        print(f"🔧 Auto-setup complete for {agent_name}. Use setup_battle_logging with MCP tools JSON if available.")
+    except Exception as e:
+        print(f"⚠️ Auto-setup failed: {e}")
+        # Fallback to basic setup
+        set_battle_context(battle_id, agent_name, backend_url, None)
 
 
 def _log_via_mcp_or_direct(message: str, detail: Optional[Dict[str, Any]] = None, is_result: bool = False, winner: Optional[str] = None):

@@ -17,7 +17,6 @@ from a2a.types import (
     TaskArtifactUpdateEvent,
     TaskStatusUpdateEvent,
 )
-from .logging import log_battle_event, CURRENT_BATTLE_ID, CURRENT_AGENT_NAME, CURRENT_BACKEND_URL
 async def create_a2a_client(target_url: str) -> A2AClient:
     """
     Create an A2A client for communicating with an agent at *target_url*.
@@ -38,20 +37,6 @@ async def send_message_to_agent(target_url: str, message: str) -> str:
     Forward *message* to another A2A agent at *target_url* and stream back
     the plain-text response.
     """
-    
-    # Log the message being sent
-    if CURRENT_BATTLE_ID:
-        log_battle_event(
-            battle_id=CURRENT_BATTLE_ID,
-            message=f"Sending message to agent at {target_url}",
-            reported_by=CURRENT_AGENT_NAME or "system",
-            detail={
-                "target_url": target_url,
-                "message_length": len(message),
-                "message_preview": message[:200] + "..." if len(message) > 200 else message
-            },
-            backend_url=CURRENT_BACKEND_URL
-        )
     
     client = await create_a2a_client(target_url)
 
@@ -83,20 +68,6 @@ async def send_message_to_agent(target_url: str, message: str) -> str:
 
     response = "".join(chunks).strip() or "No response from agent."
     
-    # Log the response received
-    if CURRENT_BATTLE_ID:
-        log_battle_event(
-            battle_id=CURRENT_BATTLE_ID,
-            message=f"Received response from agent at {target_url}",
-            reported_by=CURRENT_AGENT_NAME or "system",
-            detail={
-                "target_url": target_url,
-                "response_length": len(response),
-                "response_preview": response[:200] + "..." if len(response) > 200 else response
-            },
-            backend_url=CURRENT_BACKEND_URL
-        )
-    
     return response
 
 
@@ -105,20 +76,6 @@ async def send_message_to_agents(target_urls: List[str], message: str) -> Dict[s
     Forward *message* to multiple A2A agents at *target_urls* concurrently and stream back
     the plain-text responses.
     """
-    
-    # Log the broadcast message
-    if CURRENT_BATTLE_ID:
-        log_battle_event(
-            battle_id=CURRENT_BATTLE_ID,
-            message=f"Broadcasting message to {len(target_urls)} agents",
-            reported_by=CURRENT_AGENT_NAME or "system",
-            detail={
-                "target_urls": target_urls,
-                "message_length": len(message),
-                "message_preview": message[:200] + "..." if len(message) > 200 else message
-            },
-            backend_url=CURRENT_BACKEND_URL
-        )
     
     async def send_to_single_agent(url: str) -> tuple[str, str]:
         try:
@@ -149,21 +106,6 @@ async def send_message_to_agents(target_urls: List[str], message: str) -> Dict[s
         else:
             response_dict[url] = f"Unexpected result format: {type(result)}"
             error_count += 1
-    
-    # Log the broadcast results
-    if CURRENT_BATTLE_ID:
-        log_battle_event(
-            battle_id=CURRENT_BATTLE_ID,
-            message=f"Broadcast completed: {success_count} successful, {error_count} failed",
-            reported_by=CURRENT_AGENT_NAME or "system",
-            detail={
-                "total_agents": len(target_urls),
-                "successful_responses": success_count,
-                "failed_responses": error_count,
-                "responses": {url: resp[:100] + "..." if len(resp) > 100 else resp for url, resp in response_dict.items()}
-            },
-            backend_url=CURRENT_BACKEND_URL
-        )
     
     return response_dict
 

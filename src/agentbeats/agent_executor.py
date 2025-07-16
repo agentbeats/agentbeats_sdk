@@ -34,14 +34,18 @@ OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "anthropic/claude-3.5-sonnet")
 # Check if we should use OpenRouter (has custom API base)
 USE_OPENROUTER = OPENAI_API_BASE and "openrouter" in OPENAI_API_BASE.lower()
 
-# Disable tracing if no OpenAI API key is set
-if not OPENAI_API_KEY:
+# Disable tracing if no OpenAI API key is set or if using OpenRouter
+if not OPENAI_API_KEY or USE_OPENROUTER:
     set_tracing_disabled(disabled=True)
     # Also set environment variable to ensure it's disabled
-    os.environ["OPENAI_API_KEY"] = ""
+    os.environ["OPENAI_TRACING_V2"] = "false"
 
 # Create OpenRouter client and model provider
 if USE_OPENROUTER and OPENAI_API_KEY:
+    # Ensure tracing is disabled for OpenRouter
+    set_tracing_disabled(disabled=True)
+    os.environ["OPENAI_TRACING_V2"] = "false"
+    
     openrouter_client = AsyncOpenAI(base_url=OPENAI_API_BASE, api_key=OPENAI_API_KEY)
     
     class OpenRouterModelProvider(ModelProvider):
@@ -182,8 +186,14 @@ class AgentBeatsExecutor(AgentExecutor):
             model = OPENROUTER_MODEL_PROVIDER.get_model(OPENROUTER_MODEL)
             agent_kwargs["model"] = model
             print(f"[AgentBeatsExecutor] Using OpenRouter model: {OPENROUTER_MODEL}")
+        elif OPENAI_API_KEY:
+            # Use standard OpenAI if API key is available
+            print("[AgentBeatsExecutor] Using standard OpenAI model")
+            # The Agent will use its default model provider
         else:
-            print("[AgentBeatsExecutor] Using default OpenAI model")
+            # No API key configured
+            print("[AgentBeatsExecutor] No API key configured - agent may not work properly")
+            # The Agent will try to use its default model provider
         
         self.main_agent = Agent(**agent_kwargs)
 
