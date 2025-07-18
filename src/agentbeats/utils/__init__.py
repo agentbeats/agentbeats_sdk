@@ -5,7 +5,7 @@ AgentBeats SDK utilities organized by domain.
 
 from .agents import *
 from .environment import *
-from .ssh import *
+from .commands import *
 
 __all__ = [
     # Agent utilities

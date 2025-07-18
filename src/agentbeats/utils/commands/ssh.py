@@ -39,7 +39,12 @@ def _execute_ssh_command_helper(ssh_client, command: str) -> str:
 
 def create_ssh_connect_tool(agent_instance: Any, default_host: str = "localhost", default_port: int = 22, default_username: str = "root", default_password: str = "") -> Any:
     """Create SSH tool."""
-    from agents import function_tool
+    # Note: This function requires the agents module to be available
+    # The import is done inside the function to avoid circular imports
+    try:
+        from agents import function_tool
+    except ImportError:
+        raise ImportError("agents module is required for create_ssh_connect_tool function")
     
     @function_tool(name_override="connect_to_ssh_host")
     def connect_to_ssh_host(host: str = default_host, port: int = default_port, username: str = default_username, password: str = default_password) -> str:
