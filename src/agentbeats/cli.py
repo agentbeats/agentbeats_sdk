@@ -8,7 +8,7 @@ import importlib.util
 from .agent_executor import *
 from .agent_launcher import *
 from . import get_registered_tools, tool
-from .demos import list_demos
+
 
 def _import_tool_file(path: str | pathlib.Path):
     """import a Python file as a module, triggering @agentbeats.tool() decorators."""
@@ -70,9 +70,6 @@ def main():
                        help="Python file(s) that define @agentbeats.tool()")
     run_parser.add_argument("--reload", action="store_true")
 
-    # list_demos command
-    list_demos_parser = sub_parser.add_parser("list_demos", help="List available demos")
-
     args = parser.parse_args()
 
     if args.cmd == "run_agent":
@@ -87,10 +84,3 @@ def main():
             launcher_port=args.launcher_port,
         )
         launcher.run(reload=args.reload)
-    elif args.cmd == "list_demos":
-        demos = list_demos()
-        print("Available demos:")
-        for category, items in demos.items():
-            print(f"\n{category}:")
-            for item in items:
-                print(f"  {item}")

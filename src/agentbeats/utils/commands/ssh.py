@@ -4,43 +4,89 @@ SSH utilities for AgentBeats scenarios.
 """
 
 import paramiko
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 
-def _execute_ssh_command_helper(ssh_client, command: str) -> str:
-    """Helper function to execute SSH command and format output."""
-    try:
-        # Execute command
-        stdin, stdout, stderr = ssh_client.exec_command(command)
-        
-        # Get output
-        output = stdout.read().decode().strip()
-        error = stderr.read().decode().strip()
-        
-        # Wait for command to complete
-        exit_status = stdout.channel.recv_exit_status()
-        
-        result = f"Command: {command}\nExit Status: {exit_status}\n"
-        
-        if output:
-            result += f"Output:\n{output}\n"
-        
-        if error:
-            result += f"Error:\n{error}\n"
-        
-        if exit_status == 0:
-            return f"✅ {result}"
-        else:
-            return f"⚠️ {result}"
+class SSHClient:
+    """SSH client for executing commands on remote hosts."""
+    
+    def __init__(self, host: str, credentials: Dict[str, Any]):
+        self.host = host
+        self.credentials = credentials
+        self.client: Optional[paramiko.SSHClient] = None
+        self.connected = False
+    
+    def connect(self) -> bool:
+        """Connect to the SSH host."""
+
+        try:
+            self.client = paramiko.SSHClient()
+            self.client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
             
-    except Exception as e:
-        return f"SSH Command Error: {str(e)}"
+            port = self.credentials.get("port", 22)
+            if isinstance(port, str):
+                port = int(port)
+            
+            self.client.connect(
+                hostname=self.host,
+                port=port,
+                username=self.credentials.get("username", "root"),
+                password=self.credentials.get("password", ""),
+                timeout=10
+            )
+            
+            self.connected = True
+            return True
+            
+        except Exception as e:
+            print(f"Failed to connect to SSH host {self.host}: {str(e)}")
+            self.connected = False
+            return False
+    
+    def execute(self, command: str) -> str:
+        """Execute a command on the SSH host."""
+
+        if not self.connected:
+            if not self.connect():
+                return f"Error: Could not connect to {self.host}"
+        
+        try:
+            if self.client is None:
+                return f"Error: SSH client not initialized"
+            stdin, stdout, stderr = self.client.exec_command(command)
+            
+            output = stdout.read().decode().strip()
+            error = stderr.read().decode().strip()
+            exit_status = stdout.channel.recv_exit_status()
+            
+            result = f"Command: {command}\nExit Status: {exit_status}\n"
+            
+            if output:
+                result += f"Output:\n{output}\n"
+            
+            if error:
+                result += f"Error:\n{error}\n"
+            
+            if exit_status == 0:
+                return f"Success: {result}"
+            else:
+                return f"Warning: {result}"
+                
+        except Exception as e:
+            return f"SSH Command Error: {str(e)}"
+    
+    def disconnect(self):
+        """Disconnect from the SSH host."""
+        if self.client:
+            self.client.close()
+            self.connected = False
 
 
 def create_ssh_connect_tool(agent_instance: Any, default_host: str = "localhost", default_port: int = 22, default_username: str = "root", default_password: str = "") -> Any:
-    """Create SSH tool."""
+    """Create SSH tool for agent integration."""
     # Note: This function requires the agents module to be available
     # The import is done inside the function to avoid circular imports
+    
     try:
         from agents import function_tool
     except ImportError:
@@ -50,67 +96,19 @@ def create_ssh_connect_tool(agent_instance: Any, default_host: str = "localhost"
     def connect_to_ssh_host(host: str = default_host, port: int = default_port, username: str = default_username, password: str = default_password) -> str:
         """Connect to an SSH host."""
         try:
-            # Create SSH client
-            agent_instance.ssh_client = paramiko.SSHClient()
-            agent_instance.ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            credentials = {"username": username, "password": password, "port": port}
+            ssh_client = SSHClient(host, credentials)
             
-            # Connect to the host
-            agent_instance.ssh_client.connect(
-                hostname=host,
-                port=port,
-                username=username,
-                password=password,
-                timeout=10
-            )
-            
-            # Test the connection
-            test_result = _execute_ssh_command_helper(agent_instance.ssh_client, "echo 'SSH connection successful' && pwd")
-            
-            if test_result.startswith("❌"):
-                return test_result
-            
-            agent_instance.ssh_connected = True
-            return f"✅ Successfully connected to SSH host {host}:{port}\n{test_result}"
+            if ssh_client.connect():
+                agent_instance.ssh_client = ssh_client
+                return f"Successfully connected to SSH host {host}:{port}"
+            else:
+                return f"Failed to connect to SSH host {host}:{port}"
             
         except Exception as e:
-            return f"❌ Failed to connect to SSH host: {str(e)}"
+            return f"Failed to connect to SSH host: {str(e)}"
     
     return connect_to_ssh_host
 
 
-def execute_ssh_command(command: str) -> str:
-    """Execute SSH command."""
-    # This function would need to be called in context where ssh_client is available
-    # For now, it's a placeholder that should be used with create_ssh_connect_tool
-    return "SSH command execution not implemented in this context"
-
-
-
-
-async def test_ssh_connection(host: str, credentials: Dict[str, str]) -> bool:
-    """Test if SSH connection can be established."""
-    
-    try:
-        # Create SSH client
-        ssh_client = paramiko.SSHClient()
-        ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        
-        # Connect to the host
-        port = credentials.get("port", 22)
-        if isinstance(port, str):
-            port = int(port)
-            
-        ssh_client.connect(
-            hostname=host,
-            port=port,
-            username=credentials.get("username", "root"),
-            password=credentials.get("password", ""),
-            timeout=10
-        )
-        
-        # Close connection
-        ssh_client.close()
-        return True
-        
-    except Exception as e:
-        return False 
+ 

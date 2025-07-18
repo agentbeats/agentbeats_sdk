@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
 """
-Environment and infrastructure utilities for AgentBeats scenarios.
+Environmental utilities for easier development using the Agentbeats SDK.
 """
 
 import subprocess
 import asyncio
 from typing import Dict, List, Optional, Any
 from pathlib import Path
+
+
 async def setup_container(config: Dict[str, Any]) -> bool:
     """Set up container environment."""
     
@@ -17,16 +19,15 @@ async def setup_container(config: Dict[str, Any]) -> bool:
         # Change to docker directory
         docker_path = Path(docker_dir)
         if not docker_path.exists():
-            error_msg = f"Docker directory not found: {docker_dir}"
-            print(f"❌ {error_msg}")
+            print(f"Error: Docker directory not found: {docker_dir}")
             return False
         
         # Stop any existing containers
-        print("🔄 Stopping existing containers...")
+        print("Stopping existing containers...")
         down_result = subprocess.run(["docker-compose", "down"], cwd=docker_path, capture_output=True, text=True)
         
         # Start the environment
-        print("🚀 Starting Docker environment...")
+        print("Starting Docker environment...")
         result = subprocess.run(
             ["docker-compose", "up", "-d", "--build"], 
             cwd=docker_path,
@@ -35,17 +36,14 @@ async def setup_container(config: Dict[str, Any]) -> bool:
         )
         
         if result.returncode == 0:
-            success_msg = "Docker environment started successfully"
-            print(f"✅ {success_msg}")
+            print("Docker environment started successfully")
             return True
         else:
-            error_msg = f"Failed to start Docker environment: {result.stderr}"
-            print(f"❌ {error_msg}")
+            print(f"Failed to start Docker environment: {result.stderr}")
             return False
             
     except Exception as e:
-        error_msg = f"Error setting up Docker environment: {str(e)}"
-        print(f"❌ {error_msg}")
+        print(f"Error setting up Docker environment: {str(e)}")
         return False
 
 
@@ -60,14 +58,14 @@ async def cleanup_container(env_id: str) -> bool:
         )
         
         if result.returncode == 0:
-            print(f"✅ Docker environment {env_id} cleaned up successfully")
+            print(f"Docker environment {env_id} cleaned up successfully")
             return True
         else:
-            print(f"❌ Failed to cleanup Docker environment: {result.stderr}")
+            print(f"Failed to cleanup Docker environment: {result.stderr}")
             return False
             
     except Exception as e:
-        print(f"❌ Error cleaning up Docker environment: {str(e)}")
+        print(f"Error cleaning up Docker environment: {str(e)}")
         return False
 
 

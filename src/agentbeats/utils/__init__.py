@@ -19,8 +19,6 @@ __all__ = [
     "check_container_health",
     
     # SSH utilities
-    "_execute_ssh_command_helper",
+    "SSHClient",
     "create_ssh_connect_tool",
-    "execute_ssh_command",
-    "test_ssh_connection",
 ] 

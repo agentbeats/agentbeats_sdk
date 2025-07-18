@@ -20,6 +20,7 @@ from .context import DEFAULT_BACKEND_URL, get_battle_context
 
 def record_battle_event(battle_id: str, message: str, reported_by: str, detail: Optional[Dict[str, Any]] = None, backend_url: Optional[str] = None) -> str:
     """Record a battle event to the backend API and console."""
+
     backend_url = backend_url or DEFAULT_BACKEND_URL
     
     # Prepare event data for backend API
@@ -65,6 +66,7 @@ def record_battle_event(battle_id: str, message: str, reported_by: str, detail: 
 
 def record_battle_result(battle_id: str, message: str, winner: str, detail: Optional[Dict[str, Any]] = None, backend_url: Optional[str] = None) -> str:
     """Record the final battle result to backend API."""
+
     backend_url = backend_url or DEFAULT_BACKEND_URL
     
     logger.info("Recording battle result for %s: winner=%s", battle_id, winner)
@@ -114,6 +116,7 @@ def record_battle_result(battle_id: str, message: str, winner: str, detail: Opti
 
 def record_agent_action(battle_id: str, action: str, agent_name: str, detail: Optional[Dict[str, Any]] = None, backend_url: Optional[str] = None) -> str:
     """Record an agent action to the backend API and console."""
+
     backend_url = backend_url or DEFAULT_BACKEND_URL
     
     # Prepare action event data for backend API
@@ -159,6 +162,7 @@ def record_agent_action(battle_id: str, action: str, agent_name: str, detail: Op
 
 def record_monitoring_check(battle_id: str, check_number: int, total_checks: int, status: str, detail: Optional[Dict[str, Any]] = None, backend_url: Optional[str] = None) -> str:
     """Record a monitoring check result to the backend API and console."""
+    
     backend_url = backend_url or DEFAULT_BACKEND_URL
     
     message = f"Monitoring check {check_number}/{total_checks}: {status}"

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Agent communication utilities for AgentBeats scenarios.
+Agent communication utilities for easier development using the Agentbeats SDK.
 """
 
 import httpx
@@ -17,13 +17,18 @@ from a2a.types import (
     TaskArtifactUpdateEvent,
     TaskStatusUpdateEvent,
 )
+
+
 async def create_a2a_client(target_url: str) -> A2AClient:
-    """Create an A2A client for communicating with an agent at the specified target URL."""
+    """Creates an A2A client for communicating with an agent at the specified target URL."""
+    
     httpx_client = httpx.AsyncClient()
     resolver = A2ACardResolver(httpx_client=httpx_client, base_url=target_url)
+    
     card: AgentCard | None = await resolver.get_agent_card(
         relative_card_path="/.well-known/agent.json"
     )
+
     if card is None:
         raise RuntimeError(f"Failed to resolve agent card from {target_url}")
 
@@ -31,7 +36,7 @@ async def create_a2a_client(target_url: str) -> A2AClient:
 
 
 async def send_message_to_agent(target_url: str, message: str) -> str:
-    """Forward a message to another A2A agent and stream back the plain-text response."""
+    """Sends a message to another A2A agent and gets back the plain-text response."""
     
     client = await create_a2a_client(target_url)
 
@@ -67,7 +72,7 @@ async def send_message_to_agent(target_url: str, message: str) -> str:
 
 
 async def send_message_to_agents(target_urls: List[str], message: str) -> Dict[str, str]:
-    """Forward a message to multiple A2A agents concurrently and return their responses."""
+    """Sends a message to multiple A2A agents concurrently and returns their responses."""
     
     async def send_to_single_agent(url: str) -> tuple[str, str]:
         try:
@@ -100,6 +105,3 @@ async def send_message_to_agents(target_urls: List[str], message: str) -> Dict[s
             error_count += 1
     
     return response_dict
-
-
-# NOTE: check_agent_health function removed as requested 

@@ -8,8 +8,8 @@ from .utils.agents import (
 from .utils.environment import (
     setup_container, cleanup_container, check_container_health
 )
-from .utils.ssh import (
-    _execute_ssh_command_helper, create_ssh_connect_tool, execute_ssh_command, test_ssh_connection
+from .utils.commands import (
+    SSHClient, create_ssh_connect_tool
 )
 from .logging import (
     set_battle_context, log_ready, log_error, log_startup, log_shutdown,
