@@ -12,9 +12,8 @@ from .utils.commands import (
     SSHClient, create_ssh_connect_tool
 )
 from .logging import (
-    set_battle_context, log_ready, log_error, log_startup, log_shutdown,
-    record_battle_event, record_battle_result, record_agent_action,
-    record_monitoring_check, record_interaction
+    BattleContext, log_ready, log_error, log_startup, log_shutdown,
+    record_battle_event, record_battle_result, record_agent_action
 )
 
 _TOOL_REGISTRY = [] # global register for tools
