@@ -1,9 +1,6 @@
 # -*- coding: utf-8 -*-
 """
 System logging utilities for AgentBeats scenarios.
-
-This module handles system-level logging including agent readiness, errors,
-startup, and shutdown events.
 """
 
 import logging
@@ -12,25 +9,29 @@ from datetime import datetime
 from typing import Dict, Any, Optional
 
 # Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='[%(levelname)s] [%(asctime)s] %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S',
-)
 logger = logging.getLogger(__name__)
 
 # Import context management
-from .context import DEFAULT_BACKEND_URL, get_battle_context
+from .context import BattleContext
 
 
+def _make_api_request(context: BattleContext, endpoint: str, data: Dict[str, Any]) -> bool:
+    """Make API request to backend and return success status."""
+    try:
+        response = requests.post(
+            f"{context.backend_url}/battles/{context.battle_id}/{endpoint}",
+            json=data,
+            headers={"Content-Type": "application/json"},
+            timeout=10
+        )
+        return response.status_code == 204
+    except requests.exceptions.RequestException as e:
+        logger.error("Network error when recording to backend for battle %s: %s", context.battle_id, str(e))
+        return False
 
 
-
-def log_ready(battle_id: str, agent_name: str, capabilities: Optional[Dict[str, Any]] = None, backend_url: Optional[str] = None) -> str:
+def log_ready(context: BattleContext, agent_name: str, capabilities: Optional[Dict[str, Any]] = None) -> str:
     """Log agent readiness to the backend API and console."""
-    backend_url = backend_url or DEFAULT_BACKEND_URL
-    
-    # Prepare ready event data for backend API
     ready_data: Dict[str, Any] = {
         "event_type": "agent_ready",
         "agent_name": agent_name,
@@ -39,43 +40,16 @@ def log_ready(battle_id: str, agent_name: str, capabilities: Optional[Dict[str, 
     if capabilities:
         ready_data["capabilities"] = capabilities
     
-    try:
-        # Call backend API
-        response = requests.post(
-            f"{backend_url}/battles/{battle_id}/ready",
-            json=ready_data,
-            headers={"Content-Type": "application/json"},
-            timeout=10
-        )
-        
-        if response.status_code == 204:
-            logger.info("Successfully logged agent readiness for battle %s", battle_id)
-            return 'readiness logged to backend'
-        else:
-            logger.error("Failed to log readiness to backend for battle %s: %s", battle_id, response.text)
-            # Fallback to local file logging
-            timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            line = f"[READY] [{timestamp}] {agent_name} is ready\n"
-            with open(f"{battle_id}.log", "a", encoding="utf-8") as f:
-                f.write(line)
-            return 'readiness logged locally (backend failed)'
-            
-    except requests.exceptions.RequestException as e:
-        logger.error("Network error when logging readiness for battle %s: %s", battle_id, str(e))
-        # Fallback to local file logging
-        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        line = f"[READY] [{timestamp}] {agent_name} is ready\n"
-        with open(f"{battle_id}.log", "a", encoding="utf-8") as f:
-            f.write(line)
-        return 'readiness logged locally (network error)'
+    if _make_api_request(context, "ready", ready_data):
+        logger.info("Successfully logged agent readiness for battle %s", context.battle_id)
+        return 'readiness logged to backend'
+    else:
+        return 'readiness logging failed'
 
 
-def log_error(battle_id: str, error_message: str, error_type: str = "error", reported_by: str = "system", backend_url: Optional[str] = None) -> str:
+def log_error(context: BattleContext, error_message: str, error_type: str = "error", reported_by: str = "system") -> str:
     """Log an error event to the backend API and console."""
-    backend_url = backend_url or DEFAULT_BACKEND_URL
-    
-    # Prepare error event data for backend API
-    error_data = {
+    error_data: Dict[str, Any] = {
         "event_type": "error",
         "error_type": error_type,
         "error_message": error_message,
@@ -83,42 +57,15 @@ def log_error(battle_id: str, error_message: str, error_type: str = "error", rep
         "timestamp": datetime.utcnow().isoformat() + "Z"
     }
     
-    try:
-        # Call backend API
-        response = requests.post(
-            f"{backend_url}/battles/{battle_id}/errors",
-            json=error_data,
-            headers={"Content-Type": "application/json"},
-            timeout=10
-        )
-        
-        if response.status_code == 204:
-            logger.error("Successfully logged error to backend for battle %s", battle_id)
-            return 'error logged to backend'
-        else:
-            logger.error("Failed to log error to backend for battle %s: %s", battle_id, response.text)
-            # Fallback to local file logging
-            timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            line = f"[ERROR] [{timestamp}] {error_type.upper()}: {error_message}\n"
-            with open(f"{battle_id}.log", "a", encoding="utf-8") as f:
-                f.write(line)
-            return 'error logged locally (backend failed)'
-            
-    except requests.exceptions.RequestException as e:
-        logger.error("Network error when logging error for battle %s: %s", battle_id, str(e))
-        # Fallback to local file logging
-        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        line = f"[ERROR] [{timestamp}] {error_type.upper()}: {error_message}\n"
-        with open(f"{battle_id}.log", "a", encoding="utf-8") as f:
-            f.write(line)
-        return 'error logged locally (network error)'
+    if _make_api_request(context, "errors", error_data):
+        logger.error("Successfully logged error to backend for battle %s", context.battle_id)
+        return 'error logged to backend'
+    else:
+        return 'error logging failed'
 
 
-def log_startup(battle_id: str, agent_name: str, config: Optional[Dict[str, Any]] = None, backend_url: Optional[str] = None) -> str:
+def log_startup(context: BattleContext, agent_name: str, config: Optional[Dict[str, Any]] = None) -> str:
     """Log agent startup to the backend API and console."""
-    backend_url = backend_url or DEFAULT_BACKEND_URL
-    
-    # Prepare startup event data for backend API
     startup_data: Dict[str, Any] = {
         "event_type": "agent_startup",
         "agent_name": agent_name,
@@ -127,75 +74,24 @@ def log_startup(battle_id: str, agent_name: str, config: Optional[Dict[str, Any]
     if config:
         startup_data["config"] = config
     
-    try:
-        # Call backend API
-        response = requests.post(
-            f"{backend_url}/battles/{battle_id}/startup",
-            json=startup_data,
-            headers={"Content-Type": "application/json"},
-            timeout=10
-        )
-        
-        if response.status_code == 204:
-            logger.info("Successfully logged agent startup for battle %s", battle_id)
-            return 'startup logged to backend'
-        else:
-            logger.error("Failed to log startup to backend for battle %s: %s", battle_id, response.text)
-            # Fallback to local file logging
-            timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            line = f"[STARTUP] [{timestamp}] {agent_name} starting up\n"
-            with open(f"{battle_id}.log", "a", encoding="utf-8") as f:
-                f.write(line)
-            return 'startup logged locally (backend failed)'
-            
-    except requests.exceptions.RequestException as e:
-        logger.error("Network error when logging startup for battle %s: %s", battle_id, str(e))
-        # Fallback to local file logging
-        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        line = f"[STARTUP] [{timestamp}] {agent_name} starting up\n"
-        with open(f"{battle_id}.log", "a", encoding="utf-8") as f:
-            f.write(line)
-        return 'startup logged locally (network error)'
+    if _make_api_request(context, "startup", startup_data):
+        logger.info("Successfully logged agent startup for battle %s", context.battle_id)
+        return 'startup logged to backend'
+    else:
+        return 'startup logging failed'
 
 
-def log_shutdown(battle_id: str, agent_name: str, reason: str = "normal", backend_url: Optional[str] = None) -> str:
+def log_shutdown(context: BattleContext, agent_name: str, reason: str = "normal") -> str:
     """Log agent shutdown to the backend API and console."""
-    backend_url = backend_url or DEFAULT_BACKEND_URL
-    
-    # Prepare shutdown event data for backend API
-    shutdown_data = {
+    shutdown_data: Dict[str, Any] = {
         "event_type": "agent_shutdown",
         "agent_name": agent_name,
         "reason": reason,
         "timestamp": datetime.utcnow().isoformat() + "Z"
     }
     
-    try:
-        # Call backend API
-        response = requests.post(
-            f"{backend_url}/battles/{battle_id}/shutdown",
-            json=shutdown_data,
-            headers={"Content-Type": "application/json"},
-            timeout=10
-        )
-        
-        if response.status_code == 204:
-            logger.info("Successfully logged agent shutdown for battle %s", battle_id)
-            return 'shutdown logged to backend'
-        else:
-            logger.error("Failed to log shutdown to backend for battle %s: %s", battle_id, response.text)
-            # Fallback to local file logging
-            timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            line = f"[SHUTDOWN] [{timestamp}] {agent_name} shutting down: {reason}\n"
-            with open(f"{battle_id}.log", "a", encoding="utf-8") as f:
-                f.write(line)
-            return 'shutdown logged locally (backend failed)'
-            
-    except requests.exceptions.RequestException as e:
-        logger.error("Network error when logging shutdown for battle %s: %s", battle_id, str(e))
-        # Fallback to local file logging
-        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        line = f"[SHUTDOWN] [{timestamp}] {agent_name} shutting down: {reason}\n"
-        with open(f"{battle_id}.log", "a", encoding="utf-8") as f:
-            f.write(line)
-        return 'shutdown logged locally (network error)' 
+    if _make_api_request(context, "shutdown", shutdown_data):
+        logger.info("Successfully logged agent shutdown for battle %s", context.battle_id)
+        return 'shutdown logged to backend'
+    else:
+        return 'shutdown logging failed' 
