@@ -7,16 +7,8 @@ import subprocess
 import asyncio
 from typing import Dict, List, Optional, Any
 from pathlib import Path
-async def setup_docker_environment(config: Dict[str, Any]) -> bool:
-    """
-    Set up a Docker environment for a scenario.
-    
-    Args:
-        config: Configuration dictionary with docker settings
-        
-    Returns:
-        True if successful, False otherwise
-    """
+async def setup_container(config: Dict[str, Any]) -> bool:
+    """Set up container environment."""
     
     try:
         docker_dir = config.get("docker_dir", "docker")
@@ -57,16 +49,8 @@ async def setup_docker_environment(config: Dict[str, Any]) -> bool:
         return False
 
 
-async def cleanup_docker_environment(env_id: str) -> bool:
-    """
-    Clean up a Docker environment.
-    
-    Args:
-        env_id: Environment identifier
-        
-    Returns:
-        True if successful, False otherwise
-    """
+async def cleanup_container(env_id: str) -> bool:
+    """Destroy and reset container environment."""
     try:
         # Stop and remove containers
         result = subprocess.run(
@@ -88,15 +72,7 @@ async def cleanup_docker_environment(env_id: str) -> bool:
 
 
 async def check_container_health(container_name: str) -> bool:
-    """
-    Check if a Docker container is healthy and running.
-    
-    Args:
-        container_name: Name of the container to check
-        
-    Returns:
-        True if container is healthy, False otherwise
-    """
+    """Check container health."""
     try:
         result = subprocess.run(
             ["docker", "ps", "--filter", f"name={container_name}", "--format", "{{.Status}}"],

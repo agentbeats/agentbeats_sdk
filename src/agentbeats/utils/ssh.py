@@ -8,9 +8,7 @@ from typing import Dict, Any
 
 
 def _execute_ssh_command_helper(ssh_client, command: str) -> str:
-    """
-    Helper function to execute SSH command and format output.
-    """
+    """Helper function to execute SSH command and format output."""
     try:
         # Execute command
         stdin, stdout, stderr = ssh_client.exec_command(command)
@@ -40,17 +38,12 @@ def _execute_ssh_command_helper(ssh_client, command: str) -> str:
 
 
 def create_ssh_connect_tool(agent_instance: Any, default_host: str = "localhost", default_port: int = 22, default_username: str = "root", default_password: str = "") -> Any:
-    """
-    Create an SSH connection tool for an agent.
-    """
+    """Create SSH tool."""
     from agents import function_tool
     
     @function_tool(name_override="connect_to_ssh_host")
     def connect_to_ssh_host(host: str = default_host, port: int = default_port, username: str = default_username, password: str = default_password) -> str:
-        """
-        Connect to an SSH host.
-        This establishes a connection to the remote system where you can execute commands.
-        """
+        """Connect to an SSH host."""
         try:
             # Create SSH client
             agent_instance.ssh_client = paramiko.SSHClient()
@@ -80,31 +73,17 @@ def create_ssh_connect_tool(agent_instance: Any, default_host: str = "localhost"
     return connect_to_ssh_host
 
 
-def create_ssh_command_tool(agent_instance: Any) -> Any:
-    """
-    Create an SSH command execution tool for an agent.
-    """
-    from agents import function_tool
-    
-    @function_tool(name_override="execute_ssh_command")
-    def execute_ssh_command(command: str) -> str:
-        """
-        Execute a command directly in the SSH terminal of the connected host.
-        """
-        if not hasattr(agent_instance, 'ssh_connected') or not agent_instance.ssh_connected:
-            return "❌ Not connected to SSH host. Use connect_to_ssh_host first."
-        
-        return _execute_ssh_command_helper(agent_instance.ssh_client, command)
-    
-    return execute_ssh_command
+def execute_ssh_command(command: str) -> str:
+    """Execute SSH command."""
+    # This function would need to be called in context where ssh_client is available
+    # For now, it's a placeholder that should be used with create_ssh_connect_tool
+    return "SSH command execution not implemented in this context"
 
 
 
 
 async def test_ssh_connection(host: str, credentials: Dict[str, str]) -> bool:
-    """
-    Test if SSH connection can be established.
-    """
+    """Test if SSH connection can be established."""
     
     try:
         # Create SSH client

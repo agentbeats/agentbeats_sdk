@@ -18,9 +18,7 @@ from a2a.types import (
     TaskStatusUpdateEvent,
 )
 async def create_a2a_client(target_url: str) -> A2AClient:
-    """
-    Create an A2A client for communicating with an agent at *target_url*.
-    """
+    """Create an A2A client for communicating with an agent at the specified target URL."""
     httpx_client = httpx.AsyncClient()
     resolver = A2ACardResolver(httpx_client=httpx_client, base_url=target_url)
     card: AgentCard | None = await resolver.get_agent_card(
@@ -33,10 +31,7 @@ async def create_a2a_client(target_url: str) -> A2AClient:
 
 
 async def send_message_to_agent(target_url: str, message: str) -> str:
-    """
-    Forward *message* to another A2A agent at *target_url* and stream back
-    the plain-text response.
-    """
+    """Forward a message to another A2A agent and stream back the plain-text response."""
     
     client = await create_a2a_client(target_url)
 
@@ -72,10 +67,7 @@ async def send_message_to_agent(target_url: str, message: str) -> str:
 
 
 async def send_message_to_agents(target_urls: List[str], message: str) -> Dict[str, str]:
-    """
-    Forward *message* to multiple A2A agents at *target_urls* concurrently and stream back
-    the plain-text responses.
-    """
+    """Forward a message to multiple A2A agents concurrently and return their responses."""
     
     async def send_to_single_agent(url: str) -> tuple[str, str]:
         try:
@@ -110,47 +102,4 @@ async def send_message_to_agents(target_urls: List[str], message: str) -> Dict[s
     return response_dict
 
 
-async def check_agent_health(target_url: str) -> bool:
-    """
-    Check if an agent is healthy and responding.
-    """
-    try:
-        async with httpx.AsyncClient() as client:
-            response = await client.get(f"{target_url}/.well-known/agent.json", timeout=5)
-            return response.status_code == 200
-    except Exception:
-        return False
-
-
-async def ping_agents(agent_urls: List[str]) -> Dict[str, bool]:
-    """
-    Check health of multiple agents concurrently.
-    
-    Args:
-        agent_urls: List of agent URLs to check
-        
-    Returns:
-        Dictionary mapping agent URLs to their health status
-    """
-    async def ping_single_agent(url: str) -> tuple[str, bool]:
-        is_healthy = await check_agent_health(url)
-        return url, is_healthy
-    
-    # Create tasks for all agents
-    tasks = [ping_single_agent(url) for url in agent_urls]
-    
-    # Execute all tasks concurrently
-    results = await asyncio.gather(*tasks, return_exceptions=True)
-    
-    # Process results
-    health_dict = {}
-    for i, result in enumerate(results):
-        url = agent_urls[i]
-        if isinstance(result, Exception):
-            health_dict[url] = False
-        elif isinstance(result, tuple) and len(result) == 2:
-            health_dict[url] = result[1]  # result is (url, health_status) tuple
-        else:
-            health_dict[url] = False
-    
-    return health_dict 
+# NOTE: check_agent_health function removed as requested 

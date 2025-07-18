@@ -12,24 +12,15 @@ __all__ = [
     "create_a2a_client",
     "send_message_to_agent", 
     "send_message_to_agents",
-    "check_agent_health",
-    "ping_agents",
     
     # Environment utilities
-    "setup_docker_environment",
-    "cleanup_docker_environment",
+    "setup_container",
+    "cleanup_container",
     "check_container_health",
     
     # SSH utilities
-    "test_ssh_connection",
+    "_execute_ssh_command_helper",
     "create_ssh_connect_tool",
-    "create_ssh_command_tool",
-    
-    # Logging utilities
-    "set_battle_context",
-    "log_battle_event",
-    "log_battle_result", 
-    "log_error",
-    "log_agent_action",
-    "log_monitoring_check",
+    "execute_ssh_command",
+    "test_ssh_connection",
 ] 

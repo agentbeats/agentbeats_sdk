@@ -3,14 +3,18 @@
 from .agent_executor import *
 from .agent_launcher import *
 from .utils.agents import (
-    create_a2a_client, send_message_to_agent, send_message_to_agents,
-    check_agent_health, ping_agents
+    create_a2a_client, send_message_to_agent, send_message_to_agents
 )
 from .utils.environment import (
-    setup_docker_environment, cleanup_docker_environment, check_container_health
+    setup_container, cleanup_container, check_container_health
 )
 from .utils.ssh import (
-    test_ssh_connection, create_ssh_connect_tool, create_ssh_command_tool
+    _execute_ssh_command_helper, create_ssh_connect_tool, execute_ssh_command, test_ssh_connection
+)
+from .logging import (
+    set_battle_context, log_ready, log_error, log_startup, log_shutdown,
+    record_battle_event, record_battle_result, record_agent_action,
+    record_monitoring_check, record_interaction
 )
 
 _TOOL_REGISTRY = [] # global register for tools
