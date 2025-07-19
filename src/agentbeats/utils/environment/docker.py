@@ -47,12 +47,26 @@ async def setup_container(config: Dict[str, Any]) -> bool:
         return False
 
 
-async def cleanup_container(env_id: str) -> bool:
+async def cleanup_container(env_id: str, docker_dir: Optional[str] = None) -> bool:
     """Destroy and reset container environment."""
     try:
+        # Determine the docker directory
+        if docker_dir is None:
+            # Try to infer from env_id
+            if env_id == "battle_royale":
+                docker_dir = "arena"
+            else:
+                docker_dir = "docker"
+        
+        docker_path = Path(docker_dir)
+        if not docker_path.exists():
+            print(f"Error: Docker directory not found: {docker_dir}")
+            return False
+        
         # Stop and remove containers
         result = subprocess.run(
             ["docker-compose", "down", "--volumes", "--remove-orphans"],
+            cwd=docker_path,
             capture_output=True,
             text=True
         )

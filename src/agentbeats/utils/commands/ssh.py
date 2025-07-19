@@ -80,6 +80,17 @@ class SSHClient:
         if self.client:
             self.client.close()
             self.connected = False
+    
+    def open_sftp(self):
+        """Open an SFTP session."""
+        if not self.connected:
+            if not self.connect():
+                raise Exception(f"Could not connect to {self.host}")
+        
+        if self.client is None:
+            raise Exception("SSH client not initialized")
+        
+        return self.client.open_sftp()
 
 
 def create_ssh_connect_tool(agent_instance: Any, default_host: str = "localhost", default_port: int = 22, default_username: str = "root", default_password: str = "") -> Any:
