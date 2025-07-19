@@ -35,3 +35,12 @@ htmlcov/
 # os
 .DS_Store
 Thumbs.db
+
+# --- Log Files ---
+# SDK and demo log files
+*.log
+logs/
+**/logs/
+**/monitoring/
+**/system.log
+temp_venv/
