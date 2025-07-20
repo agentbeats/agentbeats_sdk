@@ -51,6 +51,8 @@ class BeatsAgentLauncher:
         backend_url: str,
         launcher_host: str = "0.0.0.0",
         launcher_port: int = 8000,
+        agent_host: str = "0.0.0.0",
+        agent_port: int = 8001,
     ) -> None:
         # agent settings
         self.agent_card = Path(agent_card).expanduser().resolve()
@@ -59,8 +61,12 @@ class BeatsAgentLauncher:
         self.backend_url = backend_url.rstrip("/")
 
         # launcher server settings
-        self.host = launcher_host
-        self.port = launcher_port
+        self.launcher_host = launcher_host
+        self.launcher_port = launcher_port
+
+        # agent server settings
+        self.agent_host = agent_host
+        self.agent_port = agent_port
 
         # runtime
         self._app: Optional[FastAPI] = None
@@ -76,6 +82,8 @@ class BeatsAgentLauncher:
             "agentbeats",
             "run_agent",
             str(self.agent_card),
+            "--agent_host", self.agent_host,
+            "--agent_port", str(self.agent_port),
         ]
 
         for url in self.mcp_list:
@@ -139,8 +147,8 @@ class BeatsAgentLauncher:
         self._app = self._build_app()
         uvicorn.run(
             self._app,
-            host=self.host,
-            port=self.port,
+            host=self.launcher_host,
+            port=self.launcher_port,
             reload=reload,
             log_level="debug" if reload else "info",
         )

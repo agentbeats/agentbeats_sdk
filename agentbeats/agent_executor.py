@@ -26,8 +26,10 @@ __all__ = [
 
 
 class BeatsAgent:
-    def __init__(self, name: str):
+    def __init__(self, name: str, agent_host: str, agent_port: int):
         self.name = name
+        self.agent_host = agent_host
+        self.agent_port = agent_port
 
         self.tool_list: List[Any] = []
         self.mcp_url_list: List[str] = []
@@ -56,8 +58,8 @@ class BeatsAgent:
         # Start the server
         uvicorn.run(
             self.app,
-            host=self.agent_card_json["host"],
-            port=self.agent_card_json["port"],
+            host=self.agent_host,
+            port=self.agent_port,
         )
 
     def get_app(self) -> Optional[A2AStarletteApplication]:
