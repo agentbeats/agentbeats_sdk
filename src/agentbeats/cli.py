@@ -7,7 +7,8 @@ import importlib.util
 
 from .agent_executor import *
 from .agent_launcher import *
-from . import get_registered_tools
+from . import get_registered_tools, tool
+
 
 def _import_tool_file(path: str | pathlib.Path):
     """import a Python file as a module, triggering @agentbeats.tool() decorators."""
@@ -16,8 +17,14 @@ def _import_tool_file(path: str | pathlib.Path):
         raise FileNotFoundError(path)
 
     spec = importlib.util.spec_from_file_location(path.stem, path)
-    mod  = importlib.util.module_from_spec(spec)
+    if spec is None:
+        raise ImportError(f"Could not create spec for {path}")
+    
+    mod = importlib.util.module_from_spec(spec)
     sys.modules[spec.name] = mod        # Avoid garbage collection
+    if spec.loader is None:
+        raise ImportError(f"Could not load module from {path}")
+    
     spec.loader.exec_module(mod)
 
 def _run_agent(card_path: str, 

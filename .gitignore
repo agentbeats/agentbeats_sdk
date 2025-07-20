@@ -1,2 +1,46 @@
-agentbeats.egg-info/*
-build/*
+# build system
+dist/
+build/
+*.egg-info/
+*.egg
+*.whl
+*.tar.gz
+
+# python cache
+__pycache__/
+*.py[cod]          # *.pyc、*.pyo…
+*.so               # C 扩展
+
+# venv
+.venv/
+venv/
+ENV/
+env/
+.temp_venv/
+temp_venv/
+
+# test
+.pytest_cache/
+.tox/
+.nox/
+.coverage*
+htmlcov/
+
+# ide
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# os
+.DS_Store
+Thumbs.db
+
+# --- Log Files ---
+# SDK and demo log files
+*.log
+logs/
+**/logs/
+**/monitoring/
+**/system.log
+temp_venv/
