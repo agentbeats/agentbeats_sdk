@@ -9,12 +9,15 @@ import uvicorn
 import os
 from typing import Dict, List, Any, Optional, Callable
 
-# Disable tracing before importing agents
-if not os.getenv("OPENAI_API_KEY"):
-    os.environ["OPENAI_API_KEY"] = ""
-    os.environ["OPENAI_TRACING_V2"] = "false"
-
-from agents import Agent, Runner, function_tool, Model, ModelProvider, OpenAIChatCompletionsModel, RunConfig, set_tracing_disabled
+from agents import (
+    Agent, 
+    Runner, 
+    function_tool, 
+    Model, 
+    ModelProvider, 
+    OpenAIChatCompletionsModel, 
+    set_tracing_disabled
+)
 from agents.mcp import MCPServerSse
 from openai import AsyncOpenAI
 
@@ -50,22 +53,29 @@ def create_agent(
 
     # openai agents, e.g. "o4-mini"
     if model_type == "openai":
-        OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+        OPENAI_API_KEY = os.getenv("OPENAI_API_KEY").strip() # in case of empty \n
         if not OPENAI_API_KEY:
             raise ValueError("OPENAI_API_KEY is not set")
+        
+        print("[AgentBeats] Using OpenAI model:", model_name)
         return Agent(**agent_args, model=model_name)
         
     # openrouter agents, e.g. "anthropic/claude-3.5-sonnet"
     elif model_type == "openrouter":
-        OPENROUTER_BASE_URL = os.getenv("OPENROUTER_BASE_URL")
-        OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
-        if not (OPENROUTER_BASE_URL and OPENROUTER_API_KEY):
-            raise ValueError("OpenRouter model provider is not configured")
+        OPENROUTER_BASE_URL = os.getenv("OPENROUTER_BASE_URL").strip() # in case of empty \n
+        OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY").strip() # in case of empty \n
+        if not OPENROUTER_BASE_URL:
+            raise ValueError("OPENROUTER_BASE_URL is not set")
+        if not OPENROUTER_API_KEY:
+            raise ValueError("OPENROUTER_API_KEY is not set")
         
+        print("[AgentBeats] Using OpenRouter model:", model_name)
+        set_tracing_disabled(True)  # Disable tracing for OpenRouter models
+        os.environ["OPENAI_TRACING_V2"] = "false"
         openrouter_client = AsyncOpenAI(base_url=OPENROUTER_BASE_URL, 
                                         api_key=OPENROUTER_API_KEY)
-        openrouter_model_provider = OpenRouterModelProvider(openrouter_client)
-        return Agent(**agent_args, model=openrouter_model_provider.get_model(model_name))
+        openrouter_model_provider = OpenRouterModelProvider()
+        return Agent(**agent_args, model=openrouter_model_provider.get_model(model_name, openrouter_client))
 
     # no matching agents
     else:
