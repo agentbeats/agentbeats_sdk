@@ -26,55 +26,73 @@ from a2a.server.events import EventQueue
 from a2a.utils import new_task, new_agent_text_message
 from a2a.types import Part, TextPart, TaskState, AgentCard
 
-# OpenRouter configuration
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-OPENAI_API_BASE = os.getenv("OPENAI_API_BASE")
-OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "anthropic/claude-3.5-sonnet")
-
-# Check if we should use OpenRouter (has custom API base)
-USE_OPENROUTER = OPENAI_API_BASE and "openrouter" in OPENAI_API_BASE.lower()
-
-# Disable tracing if no OpenAI API key is set or if using OpenRouter
-if not OPENAI_API_KEY or USE_OPENROUTER:
-    set_tracing_disabled(disabled=True)
-    # Also set environment variable to ensure it's disabled
-    os.environ["OPENAI_TRACING_V2"] = "false"
-
-# Create OpenRouter client and model provider
-if USE_OPENROUTER and OPENAI_API_KEY:
-    # Ensure tracing is disabled for OpenRouter
-    set_tracing_disabled(disabled=True)
-    os.environ["OPENAI_TRACING_V2"] = "false"
-    
-    openrouter_client = AsyncOpenAI(base_url=OPENAI_API_BASE, api_key=OPENAI_API_KEY)
-    
-    class OpenRouterModelProvider(ModelProvider):
-        def get_model(self, model_name: str | None) -> Model:
-            return OpenAIChatCompletionsModel(
-                model=model_name or OPENROUTER_MODEL, 
-                openai_client=openrouter_client
-            )
-    
-    OPENROUTER_MODEL_PROVIDER = OpenRouterModelProvider()
-    print(f"[AgentBeatsExecutor] Using OpenRouter with base URL: {OPENAI_API_BASE}")
-else:
-    OPENROUTER_MODEL_PROVIDER = None
-    if OPENAI_API_KEY:
-        print("[AgentBeatsExecutor] Using standard OpenAI")
-    else:
-        print("[AgentBeatsExecutor] No API key configured")
-
 __all__ = [
     "BeatsAgent",
     "AgentBeatsExecutor",
 ]
 
 
+def create_agent(
+        agent_name: str,
+        instructions: str,
+        model_type: str, 
+        model_name: str,
+        tools: Optional[List[Any]] = None,
+        mcp_servers: Optional[List[MCPServerSse]] = None) -> Agent:
+    """Create an Agent instance based on the model type and name."""
+
+    agent_args = {
+        "name": agent_name,
+        "instructions": instructions,
+        "tools": tools or [],
+        "mcp_servers": mcp_servers or [],
+    }
+
+    # openai agents, e.g. "o4-mini"
+    if model_type == "openai":
+        OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+        if not OPENAI_API_KEY:
+            raise ValueError("OPENAI_API_KEY is not set")
+        return Agent(**agent_args, model=model_name)
+        
+    # openrouter agents, e.g. "anthropic/claude-3.5-sonnet"
+    elif model_type == "openrouter":
+        OPENROUTER_BASE_URL = os.getenv("OPENROUTER_BASE_URL")
+        OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+        if not (OPENROUTER_BASE_URL and OPENROUTER_API_KEY):
+            raise ValueError("OpenRouter model provider is not configured")
+        
+        openrouter_client = AsyncOpenAI(base_url=OPENROUTER_BASE_URL, 
+                                        api_key=OPENROUTER_API_KEY)
+        openrouter_model_provider = OpenRouterModelProvider(openrouter_client)
+        return Agent(**agent_args, model=openrouter_model_provider.get_model(model_name))
+
+    # no matching agents
+    else:
+        raise ValueError(f"Unsupported model type: {model_type}.")
+
+
+class OpenRouterModelProvider(ModelProvider):
+    """Provider for OpenRouter models, allowing dynamic model in openai-agents."""
+    def get_model(self, model_name: str, openrouter_client: AsyncOpenAI) -> Model:
+        return OpenAIChatCompletionsModel(
+            model=model_name, 
+            openai_client=openrouter_client
+        )
+
+
 class BeatsAgent:
-    def __init__(self, name: str, agent_host: str, agent_port: int):
+    def __init__(self, 
+                 name: str, 
+                 agent_host: str, 
+                 agent_port: int, 
+                 model_type: str,
+                 model_name: str):
         self.name = name
         self.agent_host = agent_host
         self.agent_port = agent_port
+        self.model_type = model_type
+        self.model_name = model_name
 
         self.tool_list: List[Any] = []
         self.mcp_url_list: List[str] = []
@@ -118,6 +136,8 @@ class BeatsAgent:
             http_handler=DefaultRequestHandler(
                 agent_executor=AgentBeatsExecutor(
                     agent_card_json=self.agent_card_json,
+                    model_type=self.model_type,
+                    model_name=self.model_name,
                     mcp_url_list=self.mcp_url_list,
                     tool_list=self.tool_list,
                 ),
@@ -150,11 +170,15 @@ class BeatsAgent:
 
 class AgentBeatsExecutor(AgentExecutor):
     def __init__(self, agent_card_json: Dict[str, Any], 
+                        model_type: str,
+                        model_name: str,
                         mcp_url_list: Optional[List[str]] = None, 
                         tool_list: Optional[List[Any]] = None):
         """ (Shouldn't be called directly) 
             Initialize the AgentBeatsExecutor with the MCP URL and agent card JSON. """
         self.agent_card_json = agent_card_json
+        self.model_type = model_type
+        self.model_name = model_name
         self.chat_history: List[Dict[str, str]] = []
 
         self.mcp_url_list = mcp_url_list or []
@@ -175,29 +199,14 @@ class AgentBeatsExecutor(AgentExecutor):
         for mcp_server in self.mcp_list:
             await mcp_server.connect()
         
-        # Create agent with model if OpenRouter is available
-        agent_kwargs = {
-            "name": self.agent_card_json["name"],
-            "instructions": self.AGENT_PROMPT,
-            "tools": self.tool_list,
-            "mcp_servers": self.mcp_list,
-        }
-        
-        if OPENROUTER_MODEL_PROVIDER:
-            # Get the model from the provider
-            model = OPENROUTER_MODEL_PROVIDER.get_model(OPENROUTER_MODEL)
-            agent_kwargs["model"] = model
-            print(f"[AgentBeatsExecutor] Using OpenRouter model: {OPENROUTER_MODEL}")
-        elif OPENAI_API_KEY:
-            # Use standard OpenAI if API key is available
-            print("[AgentBeatsExecutor] Using standard OpenAI model")
-            # The Agent will use its default model provider
-        else:
-            # No API key configured
-            print("[AgentBeatsExecutor] No API key configured - agent may not work properly")
-            # The Agent will try to use its default model provider
-        
-        self.main_agent = Agent(**agent_kwargs)
+        self.main_agent = create_agent(
+            agent_name=self.agent_card_json["name"],
+            model_type=self.model_type,
+            model_name=self.model_name,
+            instructions=self.AGENT_PROMPT,
+            tools=self.tool_list,
+            mcp_servers=self.mcp_list,
+        )
 
         # Print agent instructions for debugging
         print(f"[AgentBeatsExecutor] Initializing agent: {self.main_agent.name} with {len(self.tool_list)} tools and {len(self.mcp_list)} MCP servers.")
