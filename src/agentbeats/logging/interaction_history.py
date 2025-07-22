@@ -17,14 +17,13 @@ from .context import BattleContext
 def record_battle_event(
     context: BattleContext,
     message: str,
-    reported_by: str,
     detail: Optional[Dict[str, Any]] = None
 ) -> str:
     """Record a battle event to the backend server."""
     event_data = {
         "is_result": False,
         "message": message,
-        "reported_by": reported_by,
+        "reported_by": context.agent_name,
         "timestamp": datetime.utcnow().isoformat() + "Z",
         "detail": detail or {},
     }
@@ -58,7 +57,7 @@ def record_battle_result(
         "message": message,
         "winner": winner,
         "timestamp": datetime.utcnow().isoformat() + "Z",
-        "reported_by": "green_agent",
+        "reported_by": context.agent_name,
         "detail": detail or {},
     }
     try:
@@ -82,7 +81,6 @@ def record_battle_result(
 def record_agent_action(
     context: BattleContext,
     action: str,
-    agent_name: str,
     detail: Optional[Dict[str, Any]] = None,
     interaction_details: Optional[Dict[str, Any]] = None
 ) -> str:
@@ -90,7 +88,7 @@ def record_agent_action(
     event_data = {
         "is_result": False,
         "message": action,
-        "reported_by": agent_name,
+        "reported_by": context.agent_name,
         "timestamp": datetime.utcnow().isoformat() + "Z",
         "detail": detail or {},
         "interaction_details": interaction_details or {},

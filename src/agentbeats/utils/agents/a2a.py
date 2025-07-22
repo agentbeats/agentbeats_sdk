@@ -18,6 +18,48 @@ from a2a.types import (
     TaskStatusUpdateEvent,
 )
 
+# Global cache for A2A clients
+_a2a_client_cache = {}
+
+async def get_agent_card(target_url: str) -> Optional[Dict[str, Any]]:
+    """Get agent card/metadata from a target URL."""
+    httpx_client = None
+    try:
+        httpx_client = httpx.AsyncClient()
+        resolver = A2ACardResolver(httpx_client=httpx_client, base_url=target_url)
+        
+        agent_card = await resolver.get_agent_card()
+        
+        if agent_card:
+            return agent_card.model_dump(exclude_none=True)
+        else:
+            return None
+    except Exception as e:
+        return None
+    finally:
+        if httpx_client:
+            await httpx_client.aclose()
+
+async def create_cached_a2a_client(target_url: str) -> Optional[A2AClient]:
+    """Create a cached A2A client for repeated communication."""
+    if target_url in _a2a_client_cache:
+        return _a2a_client_cache[target_url]
+    
+    try:
+        httpx_client = httpx.AsyncClient()
+        resolver = A2ACardResolver(httpx_client=httpx_client, base_url=target_url)
+        
+        agent_card = await resolver.get_agent_card()
+        
+        if agent_card:
+            client = A2AClient(httpx_client=httpx_client, agent_card=agent_card)
+            _a2a_client_cache[target_url] = client
+            return client
+        else:
+            return None
+    except Exception:
+        return None
+
 
 async def create_a2a_client(target_url: str) -> A2AClient:
     """Create an A2A client for the given agent URL."""
@@ -49,7 +91,7 @@ async def send_message_to_agent(target_url: str, message: str, timeout: Optional
                 role=Role.user,
                 parts=[Part(TextPart(text=message))],
                 messageId=uuid4().hex,
-                taskId=uuid4().hex,
+                taskId=None,
             )
         )
         req = SendStreamingMessageRequest(id=str(uuid4()), params=params)

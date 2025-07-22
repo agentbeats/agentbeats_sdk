@@ -8,6 +8,8 @@ from .a2a import (
     send_message_to_agent,
     send_message_to_agents,
     send_messages_to_agents,
+    get_agent_card,
+    create_cached_a2a_client,
 )
 
 __all__ = [
@@ -15,4 +17,6 @@ __all__ = [
     "send_message_to_agent", 
     "send_message_to_agents",
     "send_messages_to_agents",
+    "get_agent_card",
+    "create_cached_a2a_client",
 ] 

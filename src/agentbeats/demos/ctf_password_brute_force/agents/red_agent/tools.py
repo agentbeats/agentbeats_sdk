@@ -62,26 +62,28 @@ def handle_challenge_start(challenge_data: str) -> str:
     try:
         # Parse challenge data
         challenge_info = json.loads(challenge_data)
-        current_battle_id = challenge_info.get("battle_id", "ctf_password_brute_force")
         
-        # Extract agent identifier from challenge data
-        agent_id = challenge_info.get("agent_id", "red_agent_1")
-        
-        print(f"DEBUG: Parsed challenge_info: {challenge_info}")
-        print(f"DEBUG: Raw challenge_data received: {challenge_data}")
-        print(f"DEBUG: current_battle_id: {current_battle_id}")
-        print(f"DEBUG: agent_id: {agent_id}")
-        
-        # Create battle context from challenge data
+        # Extract BattleContext from challenge data
         battle_context_data = challenge_info.get("battle_context", {})
         print(f"DEBUG: battle_context_data: {battle_context_data}")
         
+        if not battle_context_data:
+            return "Error: No battle_context found in challenge data"
+        
+        # Create BattleContext from the provided data
         battle_context = BattleContext(
-            battle_id=battle_context_data.get("battle_id", current_battle_id),
-            backend_url=battle_context_data.get("backend_url", "http://localhost:9000")
+            battle_id=battle_context_data.get("battle_id", "ctf_password_brute_force"),
+            backend_url=battle_context_data.get("backend_url", "http://localhost:9000"),
+            agent_name=battle_context_data.get("agent_name", "CTF Red Agent (Competitor)")
         )
         
+        # Extract agent identifier from BattleContext
+        agent_id = battle_context.agent_name
+        current_battle_id = battle_context.battle_id
+        
         print(f"DEBUG: Created battle_context: {battle_context}")
+        print(f"DEBUG: agent_id: {agent_id}")
+        print(f"DEBUG: current_battle_id: {current_battle_id}")
         
         # Extract green agent URL from challenge data
         green_agent_url = challenge_info.get("green_agent_url")
@@ -92,7 +94,6 @@ def handle_challenge_start(challenge_data: str) -> str:
         record_battle_event(
             battle_context,
             "Challenge received",
-            agent_id,
             {
                 "ssh_host": challenge_info.get("ssh_host"),
                 "ssh_port": challenge_info.get("ssh_port"),
@@ -100,17 +101,16 @@ def handle_challenge_start(challenge_data: str) -> str:
             }
         )
         
-        return f"Challenge received! Target: {challenge_info.get('ssh_host')}:{challenge_info.get('ssh_port')}"
+        # Store challenge info for later use
+        challenge_info["agent_id"] = agent_id
+        challenge_info["battle_id"] = current_battle_id
+        
+        print(f"Challenge initialized for agent {agent_id} in battle {current_battle_id}")
+        return f"Challenge started for {agent_id} in battle {current_battle_id}"
         
     except Exception as e:
-        error_msg = f"Error handling challenge: {str(e)}"
-        print(f"Error in handle_challenge_start: {error_msg}")
-        battle_id_to_use = current_battle_id or "ctf_password_brute_force"
-        print(f"DEBUG: Logging error with battle_id: {battle_id_to_use} (current_battle_id: {current_battle_id})")
-        
-        # Create temporary battle context for error logging
-        temp_context = BattleContext(battle_id=battle_id_to_use, backend_url="http://localhost:9000")
-        record_battle_event(temp_context, f"Error: {error_msg}", agent_id or "red_agent")
+        error_msg = f"Error handling challenge start: {str(e)}"
+        print(error_msg)
         return error_msg
 
 async def _try_ssh_password(password: str) -> str:
@@ -212,7 +212,6 @@ async def _try_ssh_password(password: str) -> str:
             record_agent_action(
                 battle_context,
                 "Flag found",
-                agent_id or "red_agent",
                 {
                     "password_used": password,
                     "flag": flag_content
@@ -248,8 +247,7 @@ async def _try_ssh_password(password: str) -> str:
         error_msg = f"Error trying SSH password: {str(e)}"
         record_battle_event(
             battle_context,
-            f"Error: {error_msg}",
-            agent_id or "red_agent"
+            f"Error: {error_msg}"
         )
         return error_msg
 
@@ -271,7 +269,6 @@ async def test_password_list(password_list: str) -> str:
         record_agent_action(
             battle_context,
             "Testing password batch",
-            agent_id or "red_agent",
             {
                 "passwords": passwords,
                 "batch_size": len(passwords)
@@ -309,61 +306,74 @@ async def test_password_list(password_list: str) -> str:
 
 @ab.tool
 async def submit_flag_to_green_agent(flag_content: str) -> str:
-    """Submit the found flag to the green agent with retry logic."""
-    global green_agent_url, current_battle_id
+    """Submit a flag to the green agent for validation."""
+    global flag_found, current_battle_id, green_agent_url, battle_context, agent_id
+    
     try:
         if not flag_content:
-            return "No flag to submit"
+            return "Error: No flag content provided"
         
         if not green_agent_url:
-            return "Green agent URL not available. Run handle_challenge_start first."
+            return "Error: Green agent URL not available"
         
-        if not current_battle_id:
-            return "Battle ID not available. Run handle_challenge_start first."
+        if not battle_context:
+            return "Error: Battle context not available"
         
-        # Send a structured message to the green agent with flag submission info
-        submission_message = {
+        # Use agent_name from BattleContext
+        agent_name = battle_context.agent_name
+        
+        print(f"Submitting flag for {agent_name} in battle {current_battle_id}")
+        print(f"Flag content: {flag_content}")
+        print(f"Green agent URL: {green_agent_url}")
+        
+        # Prepare flag submission message
+        flag_submission = {
             "type": "flag_submission",
             "battle_id": current_battle_id,
-            "agent_name": agent_id or "red_agent",
-            "submitted_flag": flag_content
+            "agent_name": agent_name,
+            "flag": flag_content
         }
         
-        message = json.dumps(submission_message)
+        # Log flag submission attempt
+        record_agent_action(
+            battle_context,
+            f"Submitting flag: {flag_content[:20]}...",
+            {
+                "flag_length": len(flag_content),
+                "green_agent_url": green_agent_url
+            }
+        )
         
-        # Retry logic - try up to 3 times with delays
-        max_retries = 3
-        for attempt in range(max_retries):
-            try:
-                print(f"Attempting to submit flag (attempt {attempt + 1}/{max_retries})")
-                await send_message_to_agent(green_agent_url, message)
-                
-                # Log successful submission
-                record_agent_action(
-                    battle_context,
-                    "Flag submitted successfully",
-                    agent_id or "red_agent",
-                    {"flag": flag_content, "attempt": attempt + 1}
-                )
-                
-                return f"Flag submitted to green agent successfully (attempt {attempt + 1}): {flag_content}"
-                
-            except Exception as e:
-                print(f"Attempt {attempt + 1} failed: {str(e)}")
-                if attempt < max_retries - 1:
-                    # Wait before retry (exponential backoff)
-                    wait_time = (2 ** attempt) * 1  # 1s, 2s, 4s
-                    print(f"Waiting {wait_time} seconds before retry...")
-                    time.sleep(wait_time)
-                else:
-                    # Final attempt failed
-                    raise e
+        # Send flag submission to green agent
+        response = await send_message_to_agent(green_agent_url, json.dumps(flag_submission))
+        
+        print(f"Flag submission response: {response}")
+        
+        # Log the response
+        record_agent_action(
+            battle_context,
+            f"Flag submission response received",
+            {
+                "response": response[:100] + "..." if len(response) > 100 else response
+            }
+        )
+        
+        # Check if flag was correct
+        if "winner" in response.lower() or "correct" in response.lower():
+            flag_found = flag_content
+            return f"SUCCESS! Flag submitted successfully: {response}"
+        else:
+            return f"Flag submission response: {response}"
         
     except Exception as e:
-        error_msg = f"Error submitting flag after {max_retries} attempts: {str(e)}"
-        record_battle_event(
-            battle_context,
-            f"Error: {error_msg}",
-            agent_id or "red_agent"
-        )
+        error_msg = f"Error submitting flag: {str(e)}"
+        print(error_msg)
+        
+        if battle_context:
+            record_agent_action(
+                battle_context,
+                f"Flag submission error: {str(e)}",
+                {"error": str(e)}
+            )
+        
         return error_msg

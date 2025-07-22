@@ -28,15 +28,15 @@ SCENARIO_NAME = "ctf_password_brute_force"
 AGENT_COMMANDS = [
     {
         "name": "Green Agent (Orchestrator)",
-        "command": "agentbeats run agents/green_agent/agent_card.toml --launcher_host 0.0.0.0 --launcher_port 9010 --backend http://localhost:9000 --mcp http://localhost:9001/sse --tool agents/green_agent/tools.py"
+        "command": "agentbeats run agents/green_agent/agent_card.toml --launcher_host 0.0.0.0 --launcher_port 9010 --backend http://localhost:9000 --tool agents/green_agent/tools.py"
     },
     {
         "name": "Red Agent 1 (Competitor)",
-        "command": "agentbeats run agents/red_agent/agent_card.toml --launcher_host 0.0.0.0 --launcher_port 9020 --backend http://localhost:9000 --mcp http://localhost:9001/sse --tool agents/red_agent/tools.py"
+        "command": "agentbeats run agents/red_agent/agent_card.toml --launcher_host 0.0.0.0 --launcher_port 9020 --backend http://localhost:9000 --tool agents/red_agent/tools.py"
     },
     {
         "name": "Red Agent 2 (Competitor)", 
-        "command": "agentbeats run agents/red_agent/agent_card.toml --launcher_host 0.0.0.0 --launcher_port 9030 --backend http://localhost:9000 --mcp http://localhost:9001/sse --tool agents/red_agent/tools.py"
+        "command": "agentbeats run agents/red_agent_2/agent_card.toml --launcher_host 0.0.0.0 --launcher_port 9030 --backend http://localhost:9000 --tool agents/red_agent_2/tools.py"
     }
 ]
 
