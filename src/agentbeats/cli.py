@@ -30,14 +30,21 @@ def _import_tool_file(path: str | pathlib.Path):
 def _run_agent(card_path: str, 
                agent_host: str,
                agent_port: int,
+               model_type: str,
+               model_name: str,
                tool_files: list[str], 
-               mcp_urls: list[str]):
+               mcp_urls: list[str], 
+               ):
     # 1. Import tool files, triggering @tool decorators
     for file in tool_files:
         _import_tool_file(file)
 
     # 2. Instantiate agent and register tools
-    agent = BeatsAgent(__name__, agent_host=agent_host, agent_port=agent_port)
+    agent = BeatsAgent(__name__, 
+                       agent_host=agent_host, 
+                       agent_port=agent_port, 
+                       model_type=model_type,
+                       model_name=model_name,)
     for func in get_registered_tools():
         agent.register_tool(func)       # suppose @tool() decorator adds to agent
 
@@ -58,6 +65,10 @@ def main():
     run_agent_parser.add_argument("card", help="path/to/agent_card.toml")
     run_agent_parser.add_argument("--agent_host", default="0.0.0.0")
     run_agent_parser.add_argument("--agent_port", type=int, default=8001)
+    run_agent_parser.add_argument("--model_type", default="openai", 
+                       help="Model type to use, e.g. 'openai', 'openrouter', etc.")
+    run_agent_parser.add_argument("--model_name", default="o4-mini",
+                       help="Model name to use, e.g. 'o4-mini', etc.")
     run_agent_parser.add_argument("--tool", action="append", default=[],
                        help="Python file(s) that define @agentbeats.tool()")
     run_agent_parser.add_argument("--mcp",  action="append", default=[],
@@ -67,9 +78,13 @@ def main():
     run_parser = sub_parser.add_parser("run", help="Launch an Agent with controller layer")
     run_parser.add_argument("card",            help="path/to/agent_card.toml")
     run_parser.add_argument("--agent_host", default="0.0.0.0")
-    run_parser.add_argument("--agent_port", type=int, default=8000)
+    run_parser.add_argument("--agent_port", type=int, default=8001)
     run_parser.add_argument("--launcher_host", default="0.0.0.0")
     run_parser.add_argument("--launcher_port", type=int, default=8000)
+    run_parser.add_argument("--model_type", default="openai", 
+                       help="Model type to use, e.g. 'openai', 'openrouter', etc.")
+    run_parser.add_argument("--model_name", default="o4-mini",
+                       help="Model name to use, e.g. 'o4-mini', etc.")
     run_parser.add_argument("--backend", required=True,
                        help="Backend base URL to receive ready signal")
     run_parser.add_argument("--mcp",  action="append", default=[],
@@ -81,20 +96,24 @@ def main():
     args = parser.parse_args()
 
     if args.cmd == "run_agent":
-        _run_agent(args.card, 
-                   args.agent_host,
-                   args.agent_port,
-                   args.tool, 
-                   args.mcp)
+        _run_agent(card_path=args.card, 
+                   agent_host=args.agent_host,
+                   agent_port=args.agent_port,
+                   model_name=args.model_name,
+                   model_type=args.model_type,
+                   tool_files=args.tool, 
+                   mcp_urls=args.mcp)
     elif args.cmd == "run":
         launcher = BeatsAgentLauncher(
             agent_card=args.card,
-            mcp_list=args.mcp,
-            tool_list=args.tool,
-            backend_url=args.backend,
             launcher_host=args.launcher_host,
             launcher_port=args.launcher_port,
             agent_host=args.agent_host,
             agent_port=args.agent_port,
+            model_type=args.model_type,
+            model_name=args.model_name,
+            mcp_list=args.mcp,
+            tool_list=args.tool,
+            backend_url=args.backend,
         )
         launcher.run(reload=args.reload)

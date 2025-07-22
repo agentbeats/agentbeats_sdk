@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import os
-import sys
 import time
 import asyncio
 import uvicorn
@@ -44,15 +42,16 @@ class BeatsAgentLauncher:
 
     def __init__(
         self,
-        *,
         agent_card: str,
+        launcher_host: str,
+        launcher_port: int,
+        agent_host: str,
+        agent_port: int,
+        model_type: str,
+        model_name: str,
         mcp_list: List[str],
         tool_list: List[str],
         backend_url: str,
-        launcher_host: str = "0.0.0.0",
-        launcher_port: int = 8000,
-        agent_host: str = "0.0.0.0",
-        agent_port: int = 8001,
     ) -> None:
         # agent settings
         self.agent_card = Path(agent_card).expanduser().resolve()
@@ -67,6 +66,10 @@ class BeatsAgentLauncher:
         # agent server settings
         self.agent_host = agent_host
         self.agent_port = agent_port
+
+        # agent model settings
+        self.model_type = model_type
+        self.model_name = model_name
 
         # runtime
         self._app: Optional[FastAPI] = None
@@ -84,6 +87,8 @@ class BeatsAgentLauncher:
             str(self.agent_card),
             "--agent_host", self.agent_host,
             "--agent_port", str(self.agent_port),
+            "--model_type", self.model_type,
+            "--model_name", self.model_name,
         ]
 
         for url in self.mcp_list:
