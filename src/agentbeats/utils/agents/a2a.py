@@ -142,3 +142,61 @@ async def send_message_to_agents(target_urls: List[str], message: str, timeout: 
             response_dict[url] = f"Unexpected result format: {type(result)}"
     
     return response_dict
+
+
+async def send_messages_to_agents(target_urls: List[str], messages: List[str], timeout: Optional[float] = None) -> Dict[str, str]:
+    """Sends different messages to multiple A2A agents concurrently and returns their responses.
+    
+    Args:
+        target_urls: List of agent URLs to send messages to
+        messages: List of messages to send to each agent (must match length of target_urls)
+        timeout: Optional timeout in seconds for each individual agent. If None, no timeout is applied.
+    
+    Returns:
+        Dictionary mapping agent URLs to their responses or error messages
+        
+    Raises:
+        ValueError: If the number of URLs doesn't match the number of messages
+    """
+    if len(target_urls) != len(messages):
+        raise ValueError(f"Number of URLs ({len(target_urls)}) must match number of messages ({len(messages)})")
+    
+    if timeout is not None and timeout <= 0:
+        raise ValueError("Timeout must be positive")
+    
+    async def send_to_single_agent(url: str, message: str) -> tuple[str, str]:
+        try:
+            if timeout is not None:
+                response = await asyncio.wait_for(
+                    send_message_to_agent(url, message), 
+                    timeout=timeout
+                )
+            else:
+                response = await send_message_to_agent(url, message)
+            return url, response
+        except asyncio.TimeoutError:
+            return url, f"Error: Timeout after {timeout} seconds"
+        except Exception as e:
+            return url, f"Error: {str(e)}"
+    
+    # Create tasks for all agents with their specific messages
+    tasks = [send_to_single_agent(url, message) for url, message in zip(target_urls, messages)]
+    
+    # Execute all tasks concurrently
+    results = await asyncio.gather(*tasks, return_exceptions=True)
+    
+    # Process results
+    response_dict = {}
+    
+    for i, result in enumerate(results):
+        url = target_urls[i]
+        if isinstance(result, Exception):
+            response_dict[url] = f"Error: {str(result)}"
+        elif isinstance(result, tuple) and len(result) == 2:
+            response_dict[url] = result[1]  # result is (url, response) tuple
+        else:
+            response_dict[url] = f"Unexpected result format: {type(result)}"
+    
+    return response_dict
+
+
