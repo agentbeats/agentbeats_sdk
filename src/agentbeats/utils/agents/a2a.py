@@ -20,7 +20,7 @@ from a2a.types import (
 
 
 async def create_a2a_client(target_url: str) -> A2AClient:
-    """Creates an A2A client for communicating with an agent at the specified target URL."""
+    """Create an A2A client for the given agent URL."""
     
     httpx_client = httpx.AsyncClient()
     resolver = A2ACardResolver(httpx_client=httpx_client, base_url=target_url)
@@ -36,21 +36,7 @@ async def create_a2a_client(target_url: str) -> A2AClient:
 
 
 async def send_message_to_agent(target_url: str, message: str, timeout: Optional[float] = None) -> str:
-    """Sends a message to another A2A agent and gets back the plain-text response.
-    
-    Args:
-        target_url: The URL of the target agent
-        message: The message to send
-        timeout: Optional timeout in seconds. If None, no timeout is applied.
-    
-    Returns:
-        The agent's response as a string
-        
-    Raises:
-        asyncio.TimeoutError: If the operation times out
-        RuntimeError: If agent card resolution fails
-        Exception: For other communication errors
-    """
+    """Send a message to an A2A agent and return the response."""
     if timeout is not None and timeout <= 0:
         raise ValueError("Timeout must be positive")
     
@@ -95,16 +81,7 @@ async def send_message_to_agent(target_url: str, message: str, timeout: Optional
 
 
 async def send_message_to_agents(target_urls: List[str], message: str, timeout: Optional[float] = None) -> Dict[str, str]:
-    """Sends a message to multiple A2A agents concurrently and returns their responses.
-    
-    Args:
-        target_urls: List of agent URLs to send messages to
-        message: The message to send to all agents
-        timeout: Optional timeout in seconds for each individual agent. If None, no timeout is applied.
-    
-    Returns:
-        Dictionary mapping agent URLs to their responses or error messages
-    """
+    """Send a message to multiple A2A agents concurrently."""
     if timeout is not None and timeout <= 0:
         raise ValueError("Timeout must be positive")
     
@@ -145,19 +122,7 @@ async def send_message_to_agents(target_urls: List[str], message: str, timeout: 
 
 
 async def send_messages_to_agents(target_urls: List[str], messages: List[str], timeout: Optional[float] = None) -> Dict[str, str]:
-    """Sends different messages to multiple A2A agents concurrently and returns their responses.
-    
-    Args:
-        target_urls: List of agent URLs to send messages to
-        messages: List of messages to send to each agent (must match length of target_urls)
-        timeout: Optional timeout in seconds for each individual agent. If None, no timeout is applied.
-    
-    Returns:
-        Dictionary mapping agent URLs to their responses or error messages
-        
-    Raises:
-        ValueError: If the number of URLs doesn't match the number of messages
-    """
+    """Send different messages to multiple A2A agents concurrently."""
     if len(target_urls) != len(messages):
         raise ValueError(f"Number of URLs ({len(target_urls)}) must match number of messages ({len(messages)})")
     

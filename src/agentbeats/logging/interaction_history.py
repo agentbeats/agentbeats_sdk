@@ -14,21 +14,13 @@ logger = logging.getLogger(__name__)
 # Import context management
 from .context import BattleContext
 
-
 def record_battle_event(
     context: BattleContext,
     message: str,
     reported_by: str,
     detail: Optional[Dict[str, Any]] = None
 ) -> str:
-    """
-    Record a battle event to the backend server.
-    Args:
-        context: BattleContext instance containing battle_id and backend_url
-        message: Event message
-        reported_by: Who is reporting
-        detail: Optional event details
-    """
+    """Record a battle event to the backend server."""
     event_data = {
         "is_result": False,
         "message": message,
@@ -60,14 +52,7 @@ def record_battle_result(
     winner: str,
     detail: Optional[Dict[str, Any]] = None
 ) -> str:
-    """
-    Record the final battle result to the backend server.
-    Args:
-        context: BattleContext instance containing battle_id and backend_url
-        message: Result message
-        winner: Winner of the battle
-        detail: Optional details
-    """
+    """Record the final battle result to the backend server."""
     result_data = {
         "is_result": True,
         "message": message,
@@ -101,15 +86,7 @@ def record_agent_action(
     detail: Optional[Dict[str, Any]] = None,
     interaction_details: Optional[Dict[str, Any]] = None
 ) -> str:
-    """
-    Record an agent action to the backend server.
-    Args:
-        context: BattleContext instance containing battle_id and backend_url
-        action: Action description
-        agent_name: Name of the agent
-        detail: Optional details
-        interaction_details: Optional interaction details
-    """
+    """Record an agent action to the backend server."""
     event_data = {
         "is_result": False,
         "message": action,
