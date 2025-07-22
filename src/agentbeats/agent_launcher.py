@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import os
-import sys
 import time
 import asyncio
 import uvicorn
@@ -44,13 +42,16 @@ class BeatsAgentLauncher:
 
     def __init__(
         self,
-        *,
         agent_card: str,
+        launcher_host: str,
+        launcher_port: int,
+        agent_host: str,
+        agent_port: int,
+        model_type: str,
+        model_name: str,
         mcp_list: List[str],
         tool_list: List[str],
         backend_url: str,
-        launcher_host: str = "0.0.0.0",
-        launcher_port: int = 8000,
     ) -> None:
         # agent settings
         self.agent_card = Path(agent_card).expanduser().resolve()
@@ -59,8 +60,16 @@ class BeatsAgentLauncher:
         self.backend_url = backend_url.rstrip("/")
 
         # launcher server settings
-        self.host = launcher_host
-        self.port = launcher_port
+        self.launcher_host = launcher_host
+        self.launcher_port = launcher_port
+
+        # agent server settings
+        self.agent_host = agent_host
+        self.agent_port = agent_port
+
+        # agent model settings
+        self.model_type = model_type
+        self.model_name = model_name
 
         # runtime
         self._app: Optional[FastAPI] = None
@@ -76,6 +85,10 @@ class BeatsAgentLauncher:
             "agentbeats",
             "run_agent",
             str(self.agent_card),
+            "--agent_host", self.agent_host,
+            "--agent_port", str(self.agent_port),
+            "--model_type", self.model_type,
+            "--model_name", self.model_name,
         ]
 
         for url in self.mcp_list:
@@ -128,6 +141,14 @@ class BeatsAgentLauncher:
         @app.post("/reset")
         async def _reset(payload: _SignalPayload):
             return await self._reset_endpoint(payload)
+        
+        @app.get("/status")
+        async def _status():
+            if self._agent_proc and self._agent_proc.poll() is None:
+                return {"status":   "server up, with agent running", 
+                        "pid":      self._agent_proc.pid}
+            else:
+                return {"status": "server up, no agents running"}
 
         return app
 
@@ -139,8 +160,8 @@ class BeatsAgentLauncher:
         self._app = self._build_app()
         uvicorn.run(
             self._app,
-            host=self.host,
-            port=self.port,
+            host=self.launcher_host,
+            port=self.launcher_port,
             reload=reload,
             log_level="debug" if reload else "info",
         )
