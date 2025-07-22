@@ -10,11 +10,11 @@ requires-python = ">=3.11"
 authors = [{ "name" = "Simon Xie", "email" = "simonxie2004@outlook.com" }]
 dependencies = ["tomli>=2", 
                 "fastmcp", 
-                "fastapi", 
-                "uvicorn", 
+                "fastapi>=0.104.0", 
+                "uvicorn[standard]>=0.27.0", 
                 "httpx",
                 "a2a-sdk",
-                "paramiko>=3.0.0",
+                "paramiko>=3.4.0",
                 "openai-agents"]
 license = { text = "MIT" }
 readme = "README.md"
