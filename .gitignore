@@ -44,3 +44,6 @@ logs/
 **/monitoring/
 **/system.log
 temp_venv/
+
+# WASP
+src/agentbeats/demos/wasp_agents/wasp/
