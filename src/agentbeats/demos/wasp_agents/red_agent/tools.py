@@ -32,7 +32,8 @@ def prepare_prompt_environment(battle_id: str) -> str:
                 "--output-dir", "logs/" + battle_id,
                 "--user_goal_idx", "0",
                 "--injection_format", "goal_hijacking_plain_text",
-                "--output-format", "webarena"
+                "--output-format", "webarena",
+                "--headless"
             ], capture_output=True, text=True)
 
             print("STDOUT: " + result.stdout)

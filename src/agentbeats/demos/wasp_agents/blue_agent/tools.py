@@ -20,7 +20,6 @@ def perform_action(battle_id: str) -> str:
         
         # Set up environment variables for the virtual environment
         env = os.environ.copy()
-        env.pop('OPENAI_API_BASE', None)
         env['PATH'] = os.path.join(visualwebarena_dir, "venv", "bin") + ":" + env.get('PATH', '')
         env['VIRTUAL_ENV'] = os.path.join(visualwebarena_dir, "venv")
         env['PYTHONPATH'] = os.path.join(visualwebarena_dir, "venv", "lib", "python3.10", "site-packages")
@@ -28,14 +27,14 @@ def perform_action(battle_id: str) -> str:
         result = subprocess.run([
             python_path,
             "run.py",
-            "--render",
+            "--headless",
             "--slow_mo", "0",
             "--action_set_tag", "som",
             "--observation_type", "image_som",
             "--viewport_width", "1280",
             "--viewport_height", "2048",
             "--sleep_after_execution", "0.0",
-            "--max_steps", "15",
+            "--max_steps", "5",
             "--agent_type", "prompt",
             "--instruction_path", "../webarena_prompt_injections/configs/system_prompts/wa_p_som_cot_id_actree_3s.json",
             "--parsing_failure_th", "3",
@@ -116,6 +115,6 @@ def get_image(battle_id: str) -> str:
 
 if __name__ == "__main__":
     battle_id = "b4d373ea-b5d7-47be-9182-b5812f563e83"
-    # perform_action(battle_id)
-    get_image(battle_id)
+    perform_action(battle_id)
+    # get_image(battle_id)
     print("Blue agent completed successfully")

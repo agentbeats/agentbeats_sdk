@@ -77,7 +77,9 @@ def run_evaluator(battle_id: str) -> str:
             "evaluator_final_step.py",
             "--log-folder", "../../logs/" + battle_id + "/agent_logs",
             "--task-folder", "../../logs/" + battle_id + "/webarena_tasks_attacker",
-            "--format", "webarena"
+            "--format", "webarena",
+            "--headless", "True",
+            "--slow-mo", "0"
         ], capture_output=True, text=True, cwd=visualwebarena_dir)
         
         print("STDOUT (EVALUATOR OF ATTACKER TASK): " + result.stdout)
